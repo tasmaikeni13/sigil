@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+"""Assign stable role names to the selected learned checkpoints.
+
+Checkpoint filenames usually contain training-step metadata. This utility
+turns the ranking output into the two role names used by the evaluation tools:
+``fine.pt`` and ``coarse.pt``. Relative symbolic links keep the checkpoint tree
+portable.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+from pathlib import Path
+from typing import Optional
+
+
+def best(path: Path) -> Optional[dict]:
+    if not path.exists():
+        return None
+    data = json.loads(path.read_text())
+    if not data:
+        return None
+    name, rec = max(data.items(), key=lambda kv: (kv[1]["held"], kv[1]["t_sum"]))
+    return {"name": name, **rec}
+
+
+def link(target: Path, name: Path) -> None:
+    if name.is_symlink() or name.exists():
+        name.unlink()
+    # Relative, so the tree stays movable.
+    name.symlink_to(os.path.relpath(target.resolve(), name.parent.resolve()))
+    print(f"  {name}  ->  {name.readlink()}")
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--fine", default="results/selection_fine.json")
+    ap.add_argument("--coarse", default="results/selection_coarse.json")
+    ap.add_argument("--out", default="checkpoints")
+    args = ap.parse_args()
+
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    rc = 0
+    for role, sel in (("fine", args.fine), ("coarse", args.coarse)):
+        b = best(Path(sel))
+        if b is None:
+            print(f"  no ranking for {role} ({sel})")
+            rc = 1
+            continue
+        src = Path(b["checkpoint"])
+        if not src.exists():
+            print(f"  ranked winner missing: {src}")
+            rc = 1
+            continue
+        print(
+            f"{role}: {b['name']}  grid {b['grid']}  bits {b['n_bits']}  "
+            f"held {b['held']}  sumT {b['t_sum']:.1f}"
+        )
+        link(src, out / f"{role}.pt")
+    return rc
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
