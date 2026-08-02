@@ -205,7 +205,4 @@ reproducibility, data, checkpoints, and code checks.
 
 ## License
 
-This checkout does not include a license file. Add the license that reflects the
-copyright holder before publishing the code or accepting external
-contributions. Dataset terms are separate; see
-[`images/lite/TERMS.md`](images/lite/TERMS.md).
+Released under the [Apache License 2.0](LICENSE).
