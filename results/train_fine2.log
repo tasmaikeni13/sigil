@@ -1,0 +1,143 @@
+/home/navin/Content-Derived-Holographic-Spread-Spectrum/.venv/lib/python3.11/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+/home/navin/Content-Derived-Holographic-Spread-Spectrum/.venv/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=AlexNet_Weights.IMAGENET1K_V1`. You can also use `weights=AlexNet_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]
+Loading model from: /home/navin/Content-Derived-Holographic-Spread-Spectrum/.venv/lib/python3.11/site-packages/lpips/weights/v0.1/alex.pth
+VAE bank: ['stabilityai/sd-vae-ft-mse', 'madebyollin/sdxl-vae-fp16-fix']
+Loading pipeline components...:   0%|          | 0/5 [00:00<?, ?it/s]Loading pipeline components...:  40%|████      | 2/5 [00:00<00:00, 13.15it/s]Loading pipeline components...: 100%|██████████| 5/5 [00:00<00:00, 10.47it/s]Loading pipeline components...: 100%|██████████| 5/5 [00:00<00:00, 10.73it/s]
+You have disabled the safety checker for <class 'diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_img2img.StableDiffusionImg2ImgPipeline'> by passing `safety_checker=None`. Ensure that you abide to the conditions of the Stable Diffusion license and do not expose unfiltered results in services or applications open to the public. Both the diffusers team and Hugging Face strongly recommend to keep the safety filter enabled in all public facing circumstances, disabling it only for use-cases that involve analyzing network behavior or auditing its results. For more information, please have a look at https://github.com/huggingface/diffusers/pull/254 .
+SD-Turbo regeneration active in the noise layer
+step    100  acc=0.5020  psnr=28.05  msg=0.6925  lpips=0.0100  last=identity   1.42 it/s
+step    200  acc=0.7346  psnr=31.55  msg=0.1541  lpips=0.0358  last=identity   1.45 it/s
+step    300  acc=0.9200  psnr=32.09  msg=0.0286  lpips=0.0080  last=resize     1.47 it/s
+step    400  acc=0.9287  psnr=33.26  msg=0.0053  lpips=0.0111  last=identity   1.47 it/s
+step    500  acc=0.9495  psnr=33.99  msg=0.0077  lpips=0.0043  last=resize     1.48 it/s
+step    600  acc=0.9553  psnr=30.11  msg=0.0047  lpips=0.0145  last=resize     1.48 it/s
+step    700  acc=0.8165  psnr=26.67  msg=0.6950  lpips=0.0222  last=vae        1.43 it/s
+step    800  acc=0.8236  psnr=27.02  msg=0.0043  lpips=0.0128  last=blur       1.40 it/s
+step    900  acc=0.8132  psnr=28.57  msg=0.0023  lpips=0.0485  last=whiten     1.38 it/s
+step   1000  acc=0.7807  psnr=29.75  msg=0.6947  lpips=0.0059  last=vae        1.35 it/s
+  checkpoint at step 1000
+step   1100  acc=0.7919  psnr=28.53  msg=0.0012  lpips=0.0092  last=resync     1.33 it/s
+step   1200  acc=0.8010  psnr=28.53  msg=0.0041  lpips=0.0083  last=jpeg       1.32 it/s
+step   1300  acc=0.7585  psnr=28.95  msg=0.6975  lpips=0.0184  last=vae_crop   1.30 it/s
+step   1400  acc=0.7531  psnr=29.51  msg=0.0030  lpips=0.0046  last=whiten     1.29 it/s
+step   1500  acc=0.7446  psnr=30.14  msg=0.0041  lpips=0.0070  last=resync     1.28 it/s
+step   1600  acc=0.7636  psnr=30.46  msg=0.6940  lpips=0.0107  last=vae        1.27 it/s
+step   1700  acc=0.7734  psnr=30.49  msg=0.0006  lpips=0.0050  last=identity   1.26 it/s
+step   1800  acc=0.7608  psnr=30.50  msg=0.6937  lpips=0.0036  last=img2img    1.25 it/s
+step   1900  acc=0.8274  psnr=30.54  msg=0.6966  lpips=0.0088  last=crop       1.25 it/s
+step   2000  acc=0.7687  psnr=30.57  msg=0.6930  lpips=0.0076  last=vae        1.24 it/s
+  checkpoint at step 2000
+step   2100  acc=0.7686  psnr=30.60  msg=0.0014  lpips=0.0093  last=resize     1.23 it/s
+step   2200  acc=0.7672  psnr=30.70  msg=0.6929  lpips=0.0061  last=hflip      1.23 it/s
+step   2300  acc=0.7384  psnr=30.58  msg=0.0030  lpips=0.0109  last=blur       1.22 it/s
+step   2400  acc=0.8192  psnr=30.63  msg=0.0182  lpips=0.0046  last=jpeg       1.22 it/s
+step   2500  acc=0.8209  psnr=30.69  msg=0.0004  lpips=0.0092  last=resize     1.22 it/s
+step   2600  acc=0.7895  psnr=30.66  msg=0.0119  lpips=0.0127  last=whiten     1.22 it/s
+step   2700  acc=0.7628  psnr=30.60  msg=0.0015  lpips=0.0123  last=noise      1.22 it/s
+step   2800  acc=0.7199  psnr=30.60  msg=0.6931  lpips=0.0091  last=img2img_jpeg  1.21 it/s
+step   2900  acc=0.7033  psnr=30.61  msg=0.6927  lpips=0.0079  last=vae        1.21 it/s
+step   3000  acc=0.7792  psnr=30.68  msg=0.0857  lpips=0.0031  last=jpeg       1.21 it/s
+  checkpoint at step 3000
+step   3100  acc=0.7548  psnr=30.65  msg=0.0192  lpips=0.0062  last=whiten     1.20 it/s
+step   3200  acc=0.7855  psnr=30.68  msg=0.0026  lpips=0.0054  last=noise      1.20 it/s
+step   3300  acc=0.7773  psnr=30.70  msg=0.6930  lpips=0.0061  last=img2img    1.20 it/s
+step   3400  acc=0.7668  psnr=30.71  msg=0.0046  lpips=0.0046  last=resize     1.20 it/s
+step   3500  acc=0.7461  psnr=30.71  msg=0.0103  lpips=0.0052  last=colour     1.20 it/s
+step   3600  acc=0.7626  psnr=30.68  msg=0.6945  lpips=0.0083  last=vae_crop   1.20 it/s
+step   3700  acc=0.7258  psnr=30.74  msg=0.6931  lpips=0.0071  last=img2img    1.19 it/s
+step   3800  acc=0.7209  psnr=30.79  msg=0.6936  lpips=0.0070  last=vae        1.19 it/s
+step   3900  acc=0.7350  psnr=30.73  msg=0.0007  lpips=0.0069  last=noise      1.19 it/s
+step   4000  acc=0.7317  psnr=30.61  msg=0.0980  lpips=0.0035  last=median     1.19 it/s
+  checkpoint at step 4000
+step   4100  acc=0.7267  psnr=30.84  msg=0.6931  lpips=0.0074  last=img2img    1.18 it/s
+step   4200  acc=0.7839  psnr=30.74  msg=0.6999  lpips=0.0053  last=rotate     1.18 it/s
+step   4300  acc=0.7680  psnr=30.71  msg=0.6929  lpips=0.0062  last=vae        1.18 it/s
+step   4400  acc=0.7398  psnr=30.65  msg=0.0008  lpips=0.0038  last=colour     1.18 it/s
+step   4500  acc=0.7621  psnr=30.76  msg=0.0007  lpips=0.0076  last=colour     1.18 it/s
+step   4600  acc=0.7330  psnr=30.80  msg=0.0029  lpips=0.0043  last=whiten     1.18 it/s
+step   4700  acc=0.7241  psnr=30.76  msg=0.6933  lpips=0.0033  last=vae        1.18 it/s
+step   4800  acc=0.7479  psnr=30.78  msg=0.6939  lpips=0.0059  last=img2img_jpeg  1.18 it/s
+step   4900  acc=0.7341  psnr=30.82  msg=0.0009  lpips=0.0054  last=noise      1.17 it/s
+step   5000  acc=0.7987  psnr=30.91  msg=0.0027  lpips=0.0051  last=jpeg       1.17 it/s
+  checkpoint at step 5000
+step   5100  acc=0.7465  psnr=30.85  msg=0.6931  lpips=0.0124  last=vae        1.16 it/s
+step   5200  acc=0.7155  psnr=30.84  msg=0.6935  lpips=0.0041  last=vae        1.16 it/s
+step   5300  acc=0.7453  psnr=30.82  msg=0.6930  lpips=0.0050  last=vae_jpeg   1.15 it/s
+step   5400  acc=0.7363  psnr=30.85  msg=0.0012  lpips=0.0043  last=resync     1.13 it/s
+step   5500  acc=0.7257  psnr=30.89  msg=0.0035  lpips=0.0045  last=resize     1.12 it/s
+step   5600  acc=0.7304  psnr=30.74  msg=0.0003  lpips=0.0053  last=resize     1.12 it/s
+step   5700  acc=0.7984  psnr=30.87  msg=0.0001  lpips=0.0033  last=colour     1.11 it/s
+step   5800  acc=0.7810  psnr=30.95  msg=0.0010  lpips=0.0039  last=elastic    1.11 it/s
+step   5900  acc=0.7329  psnr=30.88  msg=0.6935  lpips=0.0051  last=vae_jpeg   1.11 it/s
+step   6000  acc=0.7663  psnr=30.84  msg=0.6929  lpips=0.0061  last=rotate     1.11 it/s
+  checkpoint at step 6000
+step   6100  acc=0.7377  psnr=30.80  msg=0.6933  lpips=0.0064  last=img2img_jpeg  1.11 it/s
+step   6200  acc=0.7429  psnr=30.82  msg=0.6932  lpips=0.0095  last=vae        1.11 it/s
+step   6300  acc=0.7077  psnr=30.88  msg=0.6935  lpips=0.0025  last=crop       1.11 it/s
+step   6400  acc=0.7117  psnr=30.89  msg=0.6935  lpips=0.0066  last=crop       1.11 it/s
+step   6500  acc=0.7851  psnr=30.91  msg=0.6932  lpips=0.0026  last=crop       1.11 it/s
+step   6600  acc=0.7708  psnr=30.98  msg=0.6932  lpips=0.0049  last=img2img    1.11 it/s
+step   6700  acc=0.7273  psnr=30.98  msg=0.1875  lpips=0.0054  last=jpeg       1.11 it/s
+step   6800  acc=0.7294  psnr=30.85  msg=0.0003  lpips=0.0065  last=jpeg       1.11 it/s
+step   6900  acc=0.7746  psnr=31.01  msg=0.0007  lpips=0.0057  last=jpeg       1.11 it/s
+step   7000  acc=0.7437  psnr=30.97  msg=0.6934  lpips=0.0029  last=img2img    1.11 it/s
+  checkpoint at step 7000
+step   7100  acc=0.7042  psnr=31.07  msg=0.0076  lpips=0.0023  last=whiten     1.11 it/s
+step   7200  acc=0.7334  psnr=31.06  msg=0.6915  lpips=0.0032  last=crop       1.11 it/s
+step   7300  acc=0.7253  psnr=31.03  msg=0.6932  lpips=0.0058  last=img2img    1.11 it/s
+step   7400  acc=0.7639  psnr=30.97  msg=0.0003  lpips=0.0065  last=resync     1.11 it/s
+step   7500  acc=0.7544  psnr=30.96  msg=0.6930  lpips=0.0031  last=vae        1.11 it/s
+step   7600  acc=0.7478  psnr=31.04  msg=0.1364  lpips=0.0069  last=elastic    1.11 it/s
+step   7700  acc=0.7365  psnr=30.93  msg=0.0077  lpips=0.0029  last=whiten     1.11 it/s
+step   7800  acc=0.7202  psnr=30.92  msg=0.0013  lpips=0.0043  last=noise      1.11 it/s
+step   7900  acc=0.7012  psnr=30.98  msg=0.6932  lpips=0.0043  last=vae_crop   1.10 it/s
+step   8000  acc=0.7450  psnr=30.99  msg=0.0016  lpips=0.0068  last=resize     1.10 it/s
+  checkpoint at step 8000
+step   8100  acc=0.7511  psnr=30.89  msg=0.6939  lpips=0.0056  last=img2img    1.10 it/s
+step   8200  acc=0.7587  psnr=30.89  msg=0.6943  lpips=0.0029  last=vae_jpeg   1.10 it/s
+step   8300  acc=0.7372  psnr=30.93  msg=0.6913  lpips=0.0036  last=rotate     1.10 it/s
+step   8400  acc=0.7447  psnr=30.96  msg=0.6933  lpips=0.0023  last=crop       1.10 it/s
+step   8500  acc=0.7354  psnr=30.90  msg=0.3443  lpips=0.0028  last=elastic    1.10 it/s
+step   8600  acc=0.7322  psnr=31.00  msg=0.6933  lpips=0.0033  last=img2img    1.10 it/s
+step   8700  acc=0.7697  psnr=31.04  msg=0.0020  lpips=0.0032  last=elastic    1.10 it/s
+step   8800  acc=0.7664  psnr=31.12  msg=0.6934  lpips=0.0034  last=vae        1.10 it/s
+step   8900  acc=0.7421  psnr=31.02  msg=0.6939  lpips=0.0030  last=crop       1.10 it/s
+step   9000  acc=0.7867  psnr=30.96  msg=0.0001  lpips=0.0030  last=resync     1.10 it/s
+  checkpoint at step 9000
+step   9100  acc=0.7128  psnr=30.83  msg=0.1325  lpips=0.0045  last=median     1.10 it/s
+step   9200  acc=0.6983  psnr=30.75  msg=0.7136  lpips=0.0044  last=blur       1.09 it/s
+step   9300  acc=0.6983  psnr=30.71  msg=0.0131  lpips=0.0045  last=jpeg       1.09 it/s
+step   9400  acc=0.7368  psnr=30.86  msg=0.0041  lpips=0.0048  last=whiten     1.09 it/s
+step   9500  acc=0.6483  psnr=30.77  msg=0.0011  lpips=0.0050  last=resize     1.08 it/s
+step   9600  acc=0.6978  psnr=30.87  msg=0.0770  lpips=0.0057  last=median     1.08 it/s
+step   9700  acc=0.7150  psnr=30.90  msg=0.6931  lpips=0.0026  last=img2img    1.08 it/s
+step   9800  acc=0.6773  psnr=30.97  msg=0.0669  lpips=0.0028  last=resync     1.08 it/s
+step   9900  acc=0.7110  psnr=31.12  msg=0.0106  lpips=0.0034  last=elastic    1.07 it/s
+step  10000  acc=0.7257  psnr=31.12  msg=0.0694  lpips=0.0040  last=resync     1.07 it/s
+  checkpoint at step 10000
+step  10100  acc=0.7184  psnr=31.03  msg=0.6935  lpips=0.0043  last=img2img_jpeg  1.07 it/s
+step  10200  acc=0.7391  psnr=31.03  msg=0.0064  lpips=0.0027  last=whiten     1.07 it/s
+step  10300  acc=0.7323  psnr=31.05  msg=0.6967  lpips=0.0035  last=resize     1.06 it/s
+step  10400  acc=0.6643  psnr=31.01  msg=0.6980  lpips=0.0047  last=vae        1.06 it/s
+step  10500  acc=0.6853  psnr=31.06  msg=0.0250  lpips=0.0034  last=elastic    1.06 it/s
+step  10600  acc=0.6755  psnr=31.09  msg=0.6933  lpips=0.0034  last=rotate     1.06 it/s
+step  10700  acc=0.6649  psnr=31.07  msg=0.6932  lpips=0.0018  last=crop       1.05 it/s
+step  10800  acc=0.7028  psnr=31.05  msg=0.6982  lpips=0.0058  last=vae        1.05 it/s
+step  10900  acc=0.7239  psnr=31.06  msg=0.0003  lpips=0.0026  last=blur       1.05 it/s
+step  11000  acc=0.6895  psnr=31.08  msg=0.6930  lpips=0.0037  last=img2img    1.05 it/s
+  checkpoint at step 11000
+step  11100  acc=0.6476  psnr=31.20  msg=0.0004  lpips=0.0030  last=noise      1.04 it/s
+step  11200  acc=0.7346  psnr=31.17  msg=0.0030  lpips=0.0032  last=jpeg       1.04 it/s
+step  11300  acc=0.6602  psnr=31.12  msg=0.6932  lpips=0.0030  last=img2img    1.04 it/s
+step  11400  acc=0.6956  psnr=31.10  msg=0.6932  lpips=0.0029  last=vae_crop   1.04 it/s
+step  11500  acc=0.7284  psnr=31.11  msg=0.0046  lpips=0.0032  last=whiten     1.04 it/s
+step  11600  acc=0.6784  psnr=31.16  msg=0.6930  lpips=0.0039  last=img2img    1.04 it/s
+step  11700  acc=0.6834  psnr=31.14  msg=0.6935  lpips=0.0041  last=img2img_jpeg  1.03 it/s
+step  11800  acc=0.6484  psnr=31.14  msg=0.6932  lpips=0.0042  last=crop       1.03 it/s
+step  11900  acc=0.7010  psnr=31.01  msg=0.7111  lpips=0.0065  last=img2img    1.03 it/s
+step  12000  acc=0.6984  psnr=30.96  msg=0.6930  lpips=0.0039  last=img2img    1.03 it/s
+  checkpoint at step 12000
+done

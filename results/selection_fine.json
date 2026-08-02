@@ -1,0 +1,457 @@
+{
+  "fine2/latent": {
+    "checkpoint": "SIGIL/checkpoints/fine2/latent.pt",
+    "grid": 32,
+    "n_bits": 1024,
+    "step": 12000,
+    "threshold": 8.39848605969802,
+    "held": 8,
+    "t_sum": 251.09554195404053,
+    "psnr": 33.04172114405373,
+    "ssim": 0.8013918161392212,
+    "conditions": {
+      "clean": {
+        "median_T": 31.999960899353027,
+        "rate": 1.0
+      },
+      "jpeg_q30": {
+        "median_T": 15.737037181854248,
+        "rate": 0.8
+      },
+      "jpeg_q50": {
+        "median_T": 27.99337387084961,
+        "rate": 1.0
+      },
+      "noise_s8": {
+        "median_T": 31.999913215637207,
+        "rate": 1.0
+      },
+      "blur_1.5": {
+        "median_T": 31.999929428100586,
+        "rate": 1.0
+      },
+      "whiten": {
+        "median_T": 31.999950408935547,
+        "rate": 1.0
+      },
+      "crop_0.75": {
+        "median_T": 23.907814025878906,
+        "rate": 1.0
+      },
+      "crop_0.5": {
+        "median_T": 15.84032917022705,
+        "rate": 1.0
+      },
+      "rotate_5": {
+        "median_T": 16.127575874328613,
+        "rate": 1.0
+      },
+      "rotate_15": {
+        "median_T": 6.5736939907073975,
+        "rate": 0.4
+      },
+      "rotate_30": {
+        "median_T": 5.407849311828613,
+        "rate": 0.1
+      },
+      "vae_n0.35": {
+        "median_T": 5.4101502895355225,
+        "rate": 0.0
+      },
+      "stack_crop_jpeg_noise": {
+        "median_T": 6.097964286804199,
+        "rate": 0.3
+      }
+    }
+  },
+  "fine2/latent_step007000": {
+    "checkpoint": "SIGIL/checkpoints/fine2/latent_step007000.pt",
+    "grid": 32,
+    "n_bits": 1024,
+    "step": 7000,
+    "threshold": 8.39848605969802,
+    "held": 7,
+    "t_sum": 257.18460631370544,
+    "psnr": 32.749606418263006,
+    "ssim": 0.795635598897934,
+    "conditions": {
+      "clean": {
+        "median_T": 31.999900817871094,
+        "rate": 1.0
+      },
+      "jpeg_q30": {
+        "median_T": 15.006514549255371,
+        "rate": 0.6
+      },
+      "jpeg_q50": {
+        "median_T": 27.28476333618164,
+        "rate": 0.9
+      },
+      "noise_s8": {
+        "median_T": 31.999889373779297,
+        "rate": 1.0
+      },
+      "blur_1.5": {
+        "median_T": 31.999886512756348,
+        "rate": 1.0
+      },
+      "whiten": {
+        "median_T": 31.99988079071045,
+        "rate": 1.0
+      },
+      "crop_0.75": {
+        "median_T": 23.85219669342041,
+        "rate": 1.0
+      },
+      "crop_0.5": {
+        "median_T": 15.825234413146973,
+        "rate": 1.0
+      },
+      "rotate_5": {
+        "median_T": 18.19043731689453,
+        "rate": 1.0
+      },
+      "rotate_15": {
+        "median_T": 8.338046312332153,
+        "rate": 0.5
+      },
+      "rotate_30": {
+        "median_T": 5.438099145889282,
+        "rate": 0.1
+      },
+      "vae_n0.35": {
+        "median_T": 5.73627495765686,
+        "rate": 0.1
+      },
+      "stack_crop_jpeg_noise": {
+        "median_T": 9.513482093811035,
+        "rate": 0.6
+      }
+    }
+  },
+  "fine2/latent_step008000": {
+    "checkpoint": "SIGIL/checkpoints/fine2/latent_step008000.pt",
+    "grid": 32,
+    "n_bits": 1024,
+    "step": 8000,
+    "threshold": 8.39848605969802,
+    "held": 7,
+    "t_sum": 240.92872643470764,
+    "psnr": 32.85433109546783,
+    "ssim": 0.7978607654571533,
+    "conditions": {
+      "clean": {
+        "median_T": 31.99967861175537,
+        "rate": 1.0
+      },
+      "jpeg_q30": {
+        "median_T": 7.906949281692505,
+        "rate": 0.5
+      },
+      "jpeg_q50": {
+        "median_T": 25.80792236328125,
+        "rate": 0.9
+      },
+      "noise_s8": {
+        "median_T": 31.99901580810547,
+        "rate": 1.0
+      },
+      "blur_1.5": {
+        "median_T": 31.999112129211426,
+        "rate": 1.0
+      },
+      "whiten": {
+        "median_T": 31.99965000152588,
+        "rate": 1.0
+      },
+      "crop_0.75": {
+        "median_T": 23.9409761428833,
+        "rate": 1.0
+      },
+      "crop_0.5": {
+        "median_T": 15.87721586227417,
+        "rate": 1.0
+      },
+      "rotate_5": {
+        "median_T": 17.088921546936035,
+        "rate": 1.0
+      },
+      "rotate_15": {
+        "median_T": 5.885260820388794,
+        "rate": 0.2
+      },
+      "rotate_30": {
+        "median_T": 5.325591802597046,
+        "rate": 0.1
+      },
+      "vae_n0.35": {
+        "median_T": 5.6856513023376465,
+        "rate": 0.1
+      },
+      "stack_crop_jpeg_noise": {
+        "median_T": 5.41278076171875,
+        "rate": 0.3
+      }
+    }
+  },
+  "fine2/latent_step009000": {
+    "checkpoint": "SIGIL/checkpoints/fine2/latent_step009000.pt",
+    "grid": 32,
+    "n_bits": 1024,
+    "step": 9000,
+    "threshold": 8.39848605969802,
+    "held": 7,
+    "t_sum": 249.32223773002625,
+    "psnr": 33.33574248667288,
+    "ssim": 0.8118827998638153,
+    "conditions": {
+      "clean": {
+        "median_T": 31.999954223632812,
+        "rate": 1.0
+      },
+      "jpeg_q30": {
+        "median_T": 12.624587535858154,
+        "rate": 0.7
+      },
+      "jpeg_q50": {
+        "median_T": 27.163809776306152,
+        "rate": 0.8
+      },
+      "noise_s8": {
+        "median_T": 31.999956130981445,
+        "rate": 1.0
+      },
+      "blur_1.5": {
+        "median_T": 31.9999361038208,
+        "rate": 1.0
+      },
+      "whiten": {
+        "median_T": 31.999937057495117,
+        "rate": 1.0
+      },
+      "crop_0.75": {
+        "median_T": 23.920665740966797,
+        "rate": 1.0
+      },
+      "crop_0.5": {
+        "median_T": 15.552134990692139,
+        "rate": 1.0
+      },
+      "rotate_5": {
+        "median_T": 18.517038345336914,
+        "rate": 1.0
+      },
+      "rotate_15": {
+        "median_T": 7.283522129058838,
+        "rate": 0.3
+      },
+      "rotate_30": {
+        "median_T": 5.3347790241241455,
+        "rate": 0.1
+      },
+      "vae_n0.35": {
+        "median_T": 5.409952402114868,
+        "rate": 0.0
+      },
+      "stack_crop_jpeg_noise": {
+        "median_T": 5.5159642696380615,
+        "rate": 0.2
+      }
+    }
+  },
+  "fine2/latent_step010000": {
+    "checkpoint": "SIGIL/checkpoints/fine2/latent_step010000.pt",
+    "grid": 32,
+    "n_bits": 1024,
+    "step": 10000,
+    "threshold": 8.39848605969802,
+    "held": 8,
+    "t_sum": 247.36368465423584,
+    "psnr": 32.92857771039486,
+    "ssim": 0.7971402764320373,
+    "conditions": {
+      "clean": {
+        "median_T": 31.99967861175537,
+        "rate": 1.0
+      },
+      "jpeg_q30": {
+        "median_T": 14.212120532989502,
+        "rate": 0.8
+      },
+      "jpeg_q50": {
+        "median_T": 27.892271041870117,
+        "rate": 1.0
+      },
+      "noise_s8": {
+        "median_T": 31.99933433532715,
+        "rate": 1.0
+      },
+      "blur_1.5": {
+        "median_T": 31.999539375305176,
+        "rate": 1.0
+      },
+      "whiten": {
+        "median_T": 31.99965000152588,
+        "rate": 1.0
+      },
+      "crop_0.75": {
+        "median_T": 23.90592670440674,
+        "rate": 1.0
+      },
+      "crop_0.5": {
+        "median_T": 15.518123149871826,
+        "rate": 1.0
+      },
+      "rotate_5": {
+        "median_T": 14.822597980499268,
+        "rate": 1.0
+      },
+      "rotate_15": {
+        "median_T": 5.649056434631348,
+        "rate": 0.2
+      },
+      "rotate_30": {
+        "median_T": 5.549184083938599,
+        "rate": 0.1
+      },
+      "vae_n0.35": {
+        "median_T": 5.472240209579468,
+        "rate": 0.0
+      },
+      "stack_crop_jpeg_noise": {
+        "median_T": 6.3439621925354,
+        "rate": 0.3
+      }
+    }
+  },
+  "fine2/latent_step011000": {
+    "checkpoint": "SIGIL/checkpoints/fine2/latent_step011000.pt",
+    "grid": 32,
+    "n_bits": 1024,
+    "step": 11000,
+    "threshold": 8.39848605969802,
+    "held": 8,
+    "t_sum": 249.1872637271881,
+    "psnr": 33.11466925336019,
+    "ssim": 0.8008315622806549,
+    "conditions": {
+      "clean": {
+        "median_T": 31.999961853027344,
+        "rate": 1.0
+      },
+      "jpeg_q30": {
+        "median_T": 15.602349758148193,
+        "rate": 0.6
+      },
+      "jpeg_q50": {
+        "median_T": 27.660489082336426,
+        "rate": 1.0
+      },
+      "noise_s8": {
+        "median_T": 31.999937057495117,
+        "rate": 1.0
+      },
+      "blur_1.5": {
+        "median_T": 31.99992561340332,
+        "rate": 1.0
+      },
+      "whiten": {
+        "median_T": 31.999958992004395,
+        "rate": 1.0
+      },
+      "crop_0.75": {
+        "median_T": 23.93179702758789,
+        "rate": 1.0
+      },
+      "crop_0.5": {
+        "median_T": 15.708742141723633,
+        "rate": 1.0
+      },
+      "rotate_5": {
+        "median_T": 15.909980297088623,
+        "rate": 1.0
+      },
+      "rotate_15": {
+        "median_T": 5.613894701004028,
+        "rate": 0.3
+      },
+      "rotate_30": {
+        "median_T": 5.303799390792847,
+        "rate": 0.1
+      },
+      "vae_n0.35": {
+        "median_T": 5.540804624557495,
+        "rate": 0.0
+      },
+      "stack_crop_jpeg_noise": {
+        "median_T": 5.915623188018799,
+        "rate": 0.3
+      }
+    }
+  },
+  "checkpoints/latent": {
+    "checkpoint": "SIGIL/checkpoints/latent.pt",
+    "grid": 32,
+    "n_bits": 1024,
+    "step": 8000,
+    "threshold": 8.39848605969802,
+    "held": 9,
+    "t_sum": 276.0276277065277,
+    "psnr": 32.206947667922556,
+    "ssim": 0.7869039356708527,
+    "conditions": {
+      "clean": {
+        "median_T": 31.99998950958252,
+        "rate": 1.0
+      },
+      "jpeg_q30": {
+        "median_T": 18.600555419921875,
+        "rate": 0.9
+      },
+      "jpeg_q50": {
+        "median_T": 28.651761054992676,
+        "rate": 1.0
+      },
+      "noise_s8": {
+        "median_T": 31.99997615814209,
+        "rate": 1.0
+      },
+      "blur_1.5": {
+        "median_T": 31.99999237060547,
+        "rate": 1.0
+      },
+      "whiten": {
+        "median_T": 31.999988555908203,
+        "rate": 1.0
+      },
+      "crop_0.75": {
+        "median_T": 23.89848232269287,
+        "rate": 1.0
+      },
+      "crop_0.5": {
+        "median_T": 14.291345596313477,
+        "rate": 1.0
+      },
+      "rotate_5": {
+        "median_T": 18.27419376373291,
+        "rate": 1.0
+      },
+      "rotate_15": {
+        "median_T": 7.856964349746704,
+        "rate": 0.4
+      },
+      "rotate_30": {
+        "median_T": 5.5691609382629395,
+        "rate": 0.1
+      },
+      "vae_n0.35": {
+        "median_T": 13.462203979492188,
+        "rate": 0.7
+      },
+      "stack_crop_jpeg_noise": {
+        "median_T": 17.42301368713379,
+        "rate": 1.0
+      }
+    }
+  }
+}

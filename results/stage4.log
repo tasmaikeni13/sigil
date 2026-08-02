@@ -1,0 +1,97 @@
+
+== waiting for stage three (05:14:17)
+stage 3 complete
+fine=SIGIL/checkpoints/latent.pt coarse=SIGIL/checkpoints/coarse/latent_step007000.pt analytic_alpha=0.46 (raised from calibrated 0.24)
+
+== arena: fused strata, baseline amplitude matched on total residual energy (06:03:18)
+80 images x 3 systems
+codebook references [sigil]: 24
+codebook references [synthid]: 24
+codebook references [stablesig]: 24
+Loading pipeline components...:   0%|          | 0/5 [00:00<?, ?it/s]Loading pipeline components...:  60%|██████    | 3/5 [00:00<00:00, 11.64it/s]Loading pipeline components...: 100%|██████████| 5/5 [00:00<00:00, 12.08it/s]Loading pipeline components...: 100%|██████████| 5/5 [00:00<00:00, 12.00it/s]
+You have disabled the safety checker for <class 'diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_img2img.StableDiffusionImg2ImgPipeline'> by passing `safety_checker=None`. Ensure that you abide to the conditions of the Stable Diffusion license and do not expose unfiltered results in services or applications open to the public. Both the diffusers team and Hugging Face strongly recommend to keep the safety filter enabled in all public facing circumstances, disabling it only for use-cases that involve analyzing network behavior or auditing its results. For more information, please have a look at https://github.com/huggingface/diffusers/pull/254 .
+Loading pipeline components...:   0%|          | 0/5 [00:00<?, ?it/s]Loading pipeline components...:  20%|██        | 1/5 [00:00<00:00,  4.21it/s]Loading pipeline components...:  40%|████      | 2/5 [00:00<00:00,  3.91it/s]Loading pipeline components...: 100%|██████████| 5/5 [00:00<00:00, 10.24it/s]Loading pipeline components...: 100%|██████████| 5/5 [00:00<00:00,  8.18it/s]
+You have disabled the safety checker for <class 'diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_img2img.StableDiffusionImg2ImgPipeline'> by passing `safety_checker=None`. Ensure that you abide to the conditions of the Stable Diffusion license and do not expose unfiltered results in services or applications open to the public. Both the diffusers team and Hugging Face strongly recommend to keep the safety filter enabled in all public facing circumstances, disabling it only for use-cases that involve analyzing network behavior or auditing its results. For more information, please have a look at https://github.com/huggingface/diffusers/pull/254 .
+Loading pipeline components...:   0%|          | 0/5 [00:00<?, ?it/s]Loading pipeline components...:  20%|██        | 1/5 [00:00<00:00,  4.50it/s]Loading pipeline components...:   0%|          | 0/5 [00:00<?, ?it/s]Loading pipeline components...:  60%|██████    | 3/5 [00:00<00:00,  9.02it/s]Loading pipeline components...: 100%|██████████| 5/5 [00:00<00:00, 11.76it/s]
+You have disabled the safety checker for <class 'diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_img2img.StableDiffusionImg2ImgPipeline'> by passing `safety_checker=None`. Ensure that you abide to the conditions of the Stable Diffusion license and do not expose unfiltered results in services or applications open to the public. Both the diffusers team and Hugging Face strongly recommend to keep the safety filter enabled in all public facing circumstances, disabling it only for use-cases that involve analyzing network behavior or auditing its results. For more information, please have a look at https://github.com/huggingface/diffusers/pull/254 .
+Loading pipeline components...:  20%|██        | 1/5 [00:00<00:00,  6.77it/s]Loading pipeline components...: 100%|██████████| 5/5 [00:00<00:00, 11.56it/s]Loading pipeline components...: 100%|██████████| 5/5 [00:00<00:00, 11.09it/s]
+You have disabled the safety checker for <class 'diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_img2img.StableDiffusionImg2ImgPipeline'> by passing `safety_checker=None`. Ensure that you abide to the conditions of the Stable Diffusion license and do not expose unfiltered results in services or applications open to the public. Both the diffusers team and Hugging Face strongly recommend to keep the safety filter enabled in all public facing circumstances, disabling it only for use-cases that involve analyzing network behavior or auditing its results. For more information, please have a look at https://github.com/huggingface/diffusers/pull/254 .
+[5/80] 0.7 img/min
+[10/80] 1.0 img/min
+[15/80] 1.1 img/min
+[20/80] 1.2 img/min
+[25/80] 1.1 img/min
+[30/80] 1.1 img/min
+[35/80] 1.2 img/min
+[40/80] 1.2 img/min
+[45/80] 1.2 img/min
+[50/80] 1.1 img/min
+[55/80] 1.2 img/min
+[60/80] 1.2 img/min
+[65/80] 1.2 img/min
+[70/80] 1.2 img/min
+[75/80] 1.2 img/min
+[80/80] 1.2 img/min
+wrote SIGIL/results/arena.csv (15920 rows) in 4050s
+wrote SIGIL/results/arena_summary.json
+
+sigil      psnr=31.59 clean=100.0% fpr= 0.0% mean-TPR(adm)= 96.5% worst=  2.5%
+stablesig  psnr=32.00 clean=100.0% fpr= 0.0% mean-TPR(adm)= 95.1% worst=  2.5%
+synthid    psnr=31.25 clean=100.0% fpr= 0.0% mean-TPR(adm)= 66.3% worst=  0.0%
+
+weakest admissible attacks for sigil:
+  rotate_30                  TPR=   2.5%  log10p=     0.0
+  rotate_15                  TPR=  32.5%  log10p=    -3.3
+  translate_7_11             TPR=  98.8%  log10p=   -37.0
+  aspect_1.15                TPR= 100.0%  log10p=  -211.9
+  blur_1.0                   TPR= 100.0%  log10p=  -212.1
+  blur_2.0                   TPR= 100.0%  log10p=  -211.8
+  codebook_sub_r5            TPR= 100.0%  log10p=  -211.8
+  codebook_whiten_16k        TPR= 100.0%  log10p=  -211.9
+  codebook_whiten_64k        TPR= 100.0%  log10p=  -211.9
+  contrast_1.3               TPR= 100.0%  log10p=  -204.8
+  crop_0.5                   TPR= 100.0%  log10p=   -19.5
+  crop_0.75                  TPR= 100.0%  log10p=   -88.0
+  crop_0.9                   TPR= 100.0%  log10p=  -158.1
+  desaturate_0.5             TPR= 100.0%  log10p=  -211.3
+  double_jpeg_70_40          TPR= 100.0%  log10p=   -44.8
+arena exit: 0
+
+== survival table (07:11:07)
+wrote SIGIL/results/SURVIVAL.md
+admissible attacks SIGIL does not fully survive (2):
+  rotate_30                      2.5%
+  rotate_15                     32.5%
+
+== ablation (07:11:07)
+wrote SIGIL/results/ABLATION.md
+  gains: 6   losses: 0
+    + jpeg_q20                    58.8% -> 100.0%
+    + translate_7_11              85.0% ->  98.8%
+    + rotate_15                   21.2% ->  32.5%
+    + double_jpeg_70_40           90.0% -> 100.0%
+    + jpeg_q30                    91.2% -> 100.0%
+    + rsid_simple_q30             91.2% -> 100.0%
+
+== figures, tables, manuscript (07:11:07)
+findfont: Failed to find font weight medium, now using 400.
+findfont: Failed to find font weight medium, now using 400.
+findfont: Failed to find font weight medium, now using 400.
+figures:
+  fig01_separation
+  fig02_tpr_by_attack
+  fig03_strength_curves
+  fig07_complementarity
+  fig13_strata_roles
+  fig08_quality_frontier
+  fig09_fidelity
+  fig12_geometry_trade
+  fig04_codebook_collapse
+  fig05_null_bound
+  fig12_arena_heatmap
+  fig11_arena_families
+  fig10_visual
+wrote 8 table files to SIGIL/paper/tables
+-rw-rw-r-- 1 navin navin 515064 Aug  1 07:11 SIGIL/paper/sigil.pdf
+
+== STAGE4-COMPLETE (07:11:21)

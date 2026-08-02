@@ -1,0 +1,392 @@
+{
+  "coarse/latent": {
+    "checkpoint": "SIGIL/checkpoints/coarse/latent.pt",
+    "grid": 16,
+    "n_bits": 256,
+    "step": 12000,
+    "threshold": 8.39848605969802,
+    "held": 10,
+    "t_sum": 166.5309774875641,
+    "psnr": 32.16144084867385,
+    "ssim": 0.839295482635498,
+    "conditions": {
+      "clean": {
+        "median_T": 15.999948501586914,
+        "rate": 1.0
+      },
+      "jpeg_q30": {
+        "median_T": 15.425411224365234,
+        "rate": 1.0
+      },
+      "jpeg_q50": {
+        "median_T": 15.918106079101562,
+        "rate": 1.0
+      },
+      "noise_s8": {
+        "median_T": 15.999932289123535,
+        "rate": 1.0
+      },
+      "blur_1.5": {
+        "median_T": 15.999788284301758,
+        "rate": 1.0
+      },
+      "whiten": {
+        "median_T": 15.999945640563965,
+        "rate": 1.0
+      },
+      "crop_0.75": {
+        "median_T": 11.976753234863281,
+        "rate": 1.0
+      },
+      "crop_0.5": {
+        "median_T": 7.576018333435059,
+        "rate": 0.0
+      },
+      "rotate_5": {
+        "median_T": 12.366275787353516,
+        "rate": 1.0
+      },
+      "rotate_15": {
+        "median_T": 7.099910259246826,
+        "rate": 0.2
+      },
+      "rotate_30": {
+        "median_T": 5.427372217178345,
+        "rate": 0.1
+      },
+      "vae_n0.35": {
+        "median_T": 14.934989929199219,
+        "rate": 1.0
+      },
+      "stack_crop_jpeg_noise": {
+        "median_T": 11.806525707244873,
+        "rate": 1.0
+      }
+    }
+  },
+  "coarse/latent_step007000": {
+    "checkpoint": "SIGIL/checkpoints/coarse/latent_step007000.pt",
+    "grid": 16,
+    "n_bits": 256,
+    "step": 7000,
+    "threshold": 8.39848605969802,
+    "held": 10,
+    "t_sum": 172.44055151939392,
+    "psnr": 31.980012268841158,
+    "ssim": 0.8672506451606751,
+    "conditions": {
+      "clean": {
+        "median_T": 15.999998569488525,
+        "rate": 1.0
+      },
+      "jpeg_q30": {
+        "median_T": 15.999488830566406,
+        "rate": 1.0
+      },
+      "jpeg_q50": {
+        "median_T": 15.999990463256836,
+        "rate": 1.0
+      },
+      "noise_s8": {
+        "median_T": 15.999999046325684,
+        "rate": 1.0
+      },
+      "blur_1.5": {
+        "median_T": 15.999999046325684,
+        "rate": 1.0
+      },
+      "whiten": {
+        "median_T": 15.999998092651367,
+        "rate": 1.0
+      },
+      "crop_0.75": {
+        "median_T": 11.999990463256836,
+        "rate": 1.0
+      },
+      "crop_0.5": {
+        "median_T": 7.9995551109313965,
+        "rate": 0.0
+      },
+      "rotate_5": {
+        "median_T": 14.294461250305176,
+        "rate": 1.0
+      },
+      "rotate_15": {
+        "median_T": 8.649351596832275,
+        "rate": 0.7
+      },
+      "rotate_30": {
+        "median_T": 5.536379098892212,
+        "rate": 0.1
+      },
+      "vae_n0.35": {
+        "median_T": 15.88712453842163,
+        "rate": 1.0
+      },
+      "stack_crop_jpeg_noise": {
+        "median_T": 12.074215412139893,
+        "rate": 1.0
+      }
+    }
+  },
+  "coarse/latent_step008000": {
+    "checkpoint": "SIGIL/checkpoints/coarse/latent_step008000.pt",
+    "grid": 16,
+    "n_bits": 256,
+    "step": 8000,
+    "threshold": 8.39848605969802,
+    "held": 10,
+    "t_sum": 171.57754611968994,
+    "psnr": 32.00728466504293,
+    "ssim": 0.8360692620277405,
+    "conditions": {
+      "clean": {
+        "median_T": 15.999999046325684,
+        "rate": 1.0
+      },
+      "jpeg_q30": {
+        "median_T": 15.916414260864258,
+        "rate": 1.0
+      },
+      "jpeg_q50": {
+        "median_T": 15.998664379119873,
+        "rate": 1.0
+      },
+      "noise_s8": {
+        "median_T": 15.999998569488525,
+        "rate": 1.0
+      },
+      "blur_1.5": {
+        "median_T": 15.999999046325684,
+        "rate": 1.0
+      },
+      "whiten": {
+        "median_T": 15.999998092651367,
+        "rate": 1.0
+      },
+      "crop_0.75": {
+        "median_T": 11.999886512756348,
+        "rate": 1.0
+      },
+      "crop_0.5": {
+        "median_T": 7.9967052936553955,
+        "rate": 0.0
+      },
+      "rotate_5": {
+        "median_T": 14.031150817871094,
+        "rate": 1.0
+      },
+      "rotate_15": {
+        "median_T": 8.60234260559082,
+        "rate": 0.6
+      },
+      "rotate_30": {
+        "median_T": 5.306748628616333,
+        "rate": 0.1
+      },
+      "vae_n0.35": {
+        "median_T": 15.594168663024902,
+        "rate": 1.0
+      },
+      "stack_crop_jpeg_noise": {
+        "median_T": 12.131470203399658,
+        "rate": 1.0
+      }
+    }
+  },
+  "coarse/latent_step009000": {
+    "checkpoint": "SIGIL/checkpoints/coarse/latent_step009000.pt",
+    "grid": 16,
+    "n_bits": 256,
+    "step": 9000,
+    "threshold": 8.39848605969802,
+    "held": 10,
+    "t_sum": 171.65901637077332,
+    "psnr": 32.07928066033727,
+    "ssim": 0.8364560782909394,
+    "conditions": {
+      "clean": {
+        "median_T": 15.999999046325684,
+        "rate": 1.0
+      },
+      "jpeg_q30": {
+        "median_T": 15.914427280426025,
+        "rate": 1.0
+      },
+      "jpeg_q50": {
+        "median_T": 15.999911308288574,
+        "rate": 1.0
+      },
+      "noise_s8": {
+        "median_T": 15.999998569488525,
+        "rate": 1.0
+      },
+      "blur_1.5": {
+        "median_T": 15.999999046325684,
+        "rate": 1.0
+      },
+      "whiten": {
+        "median_T": 15.999999046325684,
+        "rate": 1.0
+      },
+      "crop_0.75": {
+        "median_T": 11.999939918518066,
+        "rate": 1.0
+      },
+      "crop_0.5": {
+        "median_T": 7.988983392715454,
+        "rate": 0.0
+      },
+      "rotate_5": {
+        "median_T": 13.957004070281982,
+        "rate": 1.0
+      },
+      "rotate_15": {
+        "median_T": 8.797125339508057,
+        "rate": 0.5
+      },
+      "rotate_30": {
+        "median_T": 5.366415500640869,
+        "rate": 0.1
+      },
+      "vae_n0.35": {
+        "median_T": 15.619380950927734,
+        "rate": 1.0
+      },
+      "stack_crop_jpeg_noise": {
+        "median_T": 12.015832901000977,
+        "rate": 1.0
+      }
+    }
+  },
+  "coarse/latent_step010000": {
+    "checkpoint": "SIGIL/checkpoints/coarse/latent_step010000.pt",
+    "grid": 16,
+    "n_bits": 256,
+    "step": 10000,
+    "threshold": 8.39848605969802,
+    "held": 10,
+    "t_sum": 163.81173872947693,
+    "psnr": 32.06769161029616,
+    "ssim": 0.8252833306789398,
+    "conditions": {
+      "clean": {
+        "median_T": 15.999958515167236,
+        "rate": 1.0
+      },
+      "jpeg_q30": {
+        "median_T": 15.061179161071777,
+        "rate": 1.0
+      },
+      "jpeg_q50": {
+        "median_T": 15.84372615814209,
+        "rate": 1.0
+      },
+      "noise_s8": {
+        "median_T": 15.999932765960693,
+        "rate": 1.0
+      },
+      "blur_1.5": {
+        "median_T": 15.999965190887451,
+        "rate": 1.0
+      },
+      "whiten": {
+        "median_T": 15.999958515167236,
+        "rate": 1.0
+      },
+      "crop_0.75": {
+        "median_T": 11.994266986846924,
+        "rate": 1.0
+      },
+      "crop_0.5": {
+        "median_T": 7.8667285442352295,
+        "rate": 0.0
+      },
+      "rotate_5": {
+        "median_T": 11.893415927886963,
+        "rate": 1.0
+      },
+      "rotate_15": {
+        "median_T": 5.922240257263184,
+        "rate": 0.1
+      },
+      "rotate_30": {
+        "median_T": 5.54231595993042,
+        "rate": 0.1
+      },
+      "vae_n0.35": {
+        "median_T": 13.995187282562256,
+        "rate": 1.0
+      },
+      "stack_crop_jpeg_noise": {
+        "median_T": 11.692863464355469,
+        "rate": 1.0
+      }
+    }
+  },
+  "coarse/latent_step011000": {
+    "checkpoint": "SIGIL/checkpoints/coarse/latent_step011000.pt",
+    "grid": 16,
+    "n_bits": 256,
+    "step": 11000,
+    "threshold": 8.39848605969802,
+    "held": 9,
+    "t_sum": 162.15662264823914,
+    "psnr": 32.139078345517696,
+    "ssim": 0.8335408508777619,
+    "conditions": {
+      "clean": {
+        "median_T": 15.999840259552002,
+        "rate": 1.0
+      },
+      "jpeg_q30": {
+        "median_T": 15.108846664428711,
+        "rate": 1.0
+      },
+      "jpeg_q50": {
+        "median_T": 15.687180042266846,
+        "rate": 1.0
+      },
+      "noise_s8": {
+        "median_T": 15.999823570251465,
+        "rate": 1.0
+      },
+      "blur_1.5": {
+        "median_T": 15.99934434890747,
+        "rate": 1.0
+      },
+      "whiten": {
+        "median_T": 15.999838829040527,
+        "rate": 1.0
+      },
+      "crop_0.75": {
+        "median_T": 11.952943801879883,
+        "rate": 1.0
+      },
+      "crop_0.5": {
+        "median_T": 7.4463210105896,
+        "rate": 0.0
+      },
+      "rotate_5": {
+        "median_T": 11.545077323913574,
+        "rate": 0.9
+      },
+      "rotate_15": {
+        "median_T": 5.635887384414673,
+        "rate": 0.1
+      },
+      "rotate_30": {
+        "median_T": 5.375058174133301,
+        "rate": 0.1
+      },
+      "vae_n0.35": {
+        "median_T": 14.009754657745361,
+        "rate": 1.0
+      },
+      "stack_crop_jpeg_noise": {
+        "median_T": 11.396706581115723,
+        "rate": 1.0
+      }
+    }
+  }
+}

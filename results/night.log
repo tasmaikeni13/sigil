@@ -1,0 +1,35 @@
+
+== waiting for the finalize pipeline (00:16:43)
+finalize complete
+
+== kernel agreement check before committing the GPUs (00:24:43)
+field 512x512 on cuda:0
+
+shape         L     K      M   maxdiff  tensor ms  fused ms  speedup
+proposal     64   512   6760  9.88e-05      86.77     10.79    8.04x
+refine        8  4096   6760  8.35e-05      86.72     10.36    8.37x
+small      fused path declined (below MIN_WORK)
+
+PASS: fused and tensor paths agree to 9.88e-05 (tolerance 2e-03)
+
+== end-to-end detector timing with the fused scan (00:24:49)
+
+8 images at max-size 512
+  tensor path :    136.9 ms / detection
+  fused  path :    159.2 ms / detection
+  speedup     :     0.86x
+  largest statistic disagreement: analytic 4.96e-05, learned 0.00e+00
+  PASS: the two paths detect identically
+
+== two training runs, one per GPU, 12000 steps each (00:24:59)
+fine pid 3698455   coarse pid 3698456
+fine exit: 0
+coarse exit: 0
+step  12000  acc=0.6984  psnr=30.96  msg=0.6930  lpips=0.0039  last=img2img    1.03 it/s
+  checkpoint at step 12000
+done
+step  12000  acc=0.6619  psnr=30.52  msg=0.6415  lpips=0.0165  last=img2img    1.05 it/s
+  checkpoint at step 12000
+done
+
+== NIGHT-STAGE2-COMPLETE (03:39:34)

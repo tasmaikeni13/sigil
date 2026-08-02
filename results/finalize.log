@@ -1,0 +1,285 @@
+
+== waiting for training to finish (22:13:28)
+step   8000  acc=0.6615  psnr=30.67  msg=0.6811  lpips=0.0051  last=vae        0.90 it/s
+
+== operating point: sweep amplitude, pick the quietest that holds (23:28:01)
+Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]
+/home/navin/Content-Derived-Holographic-Spread-Spectrum/.venv/lib/python3.11/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+/home/navin/Content-Derived-Holographic-Spread-Spectrum/.venv/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=AlexNet_Weights.IMAGENET1K_V1`. You can also use `weights=AlexNet_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+Loading model from: /home/navin/Content-Derived-Holographic-Spread-Spectrum/.venv/lib/python3.11/site-packages/lpips/weights/v0.1/alex.pth
+latent=0.045 analytic=0.46  psnr=32.01 ssim=0.7664 must-hold 6/8
+latent=0.045 analytic=0.34  psnr=32.17 ssim=0.7734 must-hold 6/8
+latent=0.045 analytic=0.24  psnr=32.27 ssim=0.7771 must-hold 6/8
+latent=0.036 analytic=0.46  psnr=33.77 ssim=0.8236 must-hold 6/8
+latent=0.036 analytic=0.34  psnr=34.02 ssim=0.8326 must-hold 6/8
+latent=0.036 analytic=0.24  psnr=34.15 ssim=0.8368 must-hold 6/8
+latent=0.028 analytic=0.46  psnr=35.65 ssim=0.8738 must-hold 5/8
+latent=0.028 analytic=0.34  psnr=36.02 ssim=0.8834 must-hold 5/8
+latent=0.028 analytic=0.24  psnr=36.25 ssim=0.8890 must-hold 6/8
+latent=0.022 analytic=0.46  psnr=37.22 ssim=0.9048 must-hold 5/8
+latent=0.022 analytic=0.34  psnr=37.86 ssim=0.9178 must-hold 5/8
+latent=0.022 analytic=0.24  psnr=38.22 ssim=0.9241 must-hold 5/8
+
+chosen: latent_strength=0.045 analytic_alpha=0.46 psnr=32.01 ssim=0.7664
+wrote SIGIL/results/operating_point.json
+calibrate exit: 0
+operating point: 0.045 0.46
+
+== arena: 3 systems x full attack suite, both GPUs (23:33:40)
+80 images x 3 systems
+codebook references [sigil]: 24
+codebook references [synthid]: 24
+codebook references [stablesig]: 24
+Loading pipeline components...:   0%|          | 0/5 [00:00<?, ?it/s]Loading pipeline components...:  60%|██████    | 3/5 [00:00<00:00, 18.09it/s]Loading pipeline components...:   0%|          | 0/5 [00:00<?, ?it/s]Loading pipeline components...: 100%|██████████| 5/5 [00:00<00:00,  7.61it/s]Loading pipeline components...: 100%|██████████| 5/5 [00:00<00:00,  8.50it/s]
+You have disabled the safety checker for <class 'diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_img2img.StableDiffusionImg2ImgPipeline'> by passing `safety_checker=None`. Ensure that you abide to the conditions of the Stable Diffusion license and do not expose unfiltered results in services or applications open to the public. Both the diffusers team and Hugging Face strongly recommend to keep the safety filter enabled in all public facing circumstances, disabling it only for use-cases that involve analyzing network behavior or auditing its results. For more information, please have a look at https://github.com/huggingface/diffusers/pull/254 .
+Loading pipeline components...:  40%|████      | 2/5 [00:00<00:00,  7.74it/s]Loading pipeline components...:   0%|          | 0/5 [00:00<?, ?it/s]Loading pipeline components...:  20%|██        | 1/5 [00:00<00:00,  4.95it/s]Loading pipeline components...:  80%|████████  | 4/5 [00:00<00:00,  6.82it/s]Loading pipeline components...: 100%|██████████| 5/5 [00:00<00:00,  8.61it/s]
+You have disabled the safety checker for <class 'diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_img2img.StableDiffusionImg2ImgPipeline'> by passing `safety_checker=None`. Ensure that you abide to the conditions of the Stable Diffusion license and do not expose unfiltered results in services or applications open to the public. Both the diffusers team and Hugging Face strongly recommend to keep the safety filter enabled in all public facing circumstances, disabling it only for use-cases that involve analyzing network behavior or auditing its results. For more information, please have a look at https://github.com/huggingface/diffusers/pull/254 .
+Loading pipeline components...:  80%|████████  | 4/5 [00:00<00:00, 12.17it/s]Loading pipeline components...: 100%|██████████| 5/5 [00:00<00:00,  7.31it/s]
+You have disabled the safety checker for <class 'diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_img2img.StableDiffusionImg2ImgPipeline'> by passing `safety_checker=None`. Ensure that you abide to the conditions of the Stable Diffusion license and do not expose unfiltered results in services or applications open to the public. Both the diffusers team and Hugging Face strongly recommend to keep the safety filter enabled in all public facing circumstances, disabling it only for use-cases that involve analyzing network behavior or auditing its results. For more information, please have a look at https://github.com/huggingface/diffusers/pull/254 .
+Loading pipeline components...:   0%|          | 0/5 [00:00<?, ?it/s]Loading pipeline components...:  40%|████      | 2/5 [00:00<00:00, 11.70it/s]Loading pipeline components...:  80%|████████  | 4/5 [00:00<00:00,  9.24it/s]Loading pipeline components...: 100%|██████████| 5/5 [00:00<00:00,  8.25it/s]Loading pipeline components...: 100%|██████████| 5/5 [00:00<00:00,  8.74it/s]
+You have disabled the safety checker for <class 'diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_img2img.StableDiffusionImg2ImgPipeline'> by passing `safety_checker=None`. Ensure that you abide to the conditions of the Stable Diffusion license and do not expose unfiltered results in services or applications open to the public. Both the diffusers team and Hugging Face strongly recommend to keep the safety filter enabled in all public facing circumstances, disabling it only for use-cases that involve analyzing network behavior or auditing its results. For more information, please have a look at https://github.com/huggingface/diffusers/pull/254 .
+[5/80] 1.0 img/min
+[10/80] 1.4 img/min
+[15/80] 1.5 img/min
+[20/80] 1.7 img/min
+[25/80] 1.5 img/min
+[30/80] 1.6 img/min
+[35/80] 1.6 img/min
+[40/80] 1.7 img/min
+[45/80] 1.6 img/min
+[50/80] 1.6 img/min
+[55/80] 1.7 img/min
+[60/80] 1.7 img/min
+[65/80] 1.6 img/min
+[70/80] 1.7 img/min
+[75/80] 1.7 img/min
+[80/80] 1.7 img/min
+wrote SIGIL/results/arena.csv (15920 rows) in 2849s
+wrote SIGIL/results/arena_summary.json
+
+sigil      psnr=31.66 clean=100.0% fpr= 0.0% mean-TPR(adm)= 92.7% worst=  0.0%
+stablesig  psnr=32.05 clean=100.0% fpr= 0.0% mean-TPR(adm)= 93.1% worst=  0.0%
+synthid    psnr=31.25 clean=100.0% fpr= 0.0% mean-TPR(adm)= 65.1% worst=  0.0%
+
+weakest admissible attacks for sigil:
+  stack_img2img_crop_jpeg    TPR=   0.0%  log10p=     0.0
+  rotate_30                  TPR=   2.5%  log10p=     0.0
+  rotate_15                  TPR=  27.5%  log10p=    -3.4
+  crop_0.75                  TPR=  46.2%  log10p=    -3.8
+  jpeg_q30                   TPR=  91.2%  log10p=   -65.4
+  rsid_simple_q30            TPR=  91.2%  log10p=   -65.4
+  stack_crop_jpeg_noise      TPR=  98.8%  log10p=   -44.9
+  aspect_1.15                TPR= 100.0%  log10p=  -214.2
+  blur_1.0                   TPR= 100.0%  log10p=  -214.2
+  blur_2.0                   TPR= 100.0%  log10p=  -214.2
+  codebook_sub_r5            TPR= 100.0%  log10p=  -214.2
+  codebook_whiten_16k        TPR= 100.0%  log10p=  -214.2
+  codebook_whiten_64k        TPR= 100.0%  log10p=  -214.2
+  contrast_1.3               TPR= 100.0%  log10p=  -210.1
+  crop_0.5                   TPR= 100.0%  log10p=   -36.3
+arena exit: 0
+
+== false-positive margin on a larger sample (00:21:29)
+  25/80
+  50/80
+  75/80
+{
+  "n_images": 80,
+  "alpha": 1e-06,
+  "conditions": {
+    "unmarked": {
+      "n": 80,
+      "false_positives": 0,
+      "rate": 0.0,
+      "A_max": 5.652032375335693,
+      "A_mean": 3.0535520642995833,
+      "A_threshold": 7.507258643670251,
+      "A_margin": 1.8552262683345573,
+      "L_max": 6.138413906097412,
+      "L_mean": 5.433886247873306,
+      "L_threshold": 8.48061686766133,
+      "L_margin": 2.3422029615639186,
+      "min_log10p": -0.5225927449795208
+    },
+    "wrong_key": {
+      "n": 80,
+      "false_positives": 0,
+      "rate": 0.0,
+      "A_max": 5.68967866897583,
+      "A_mean": 3.186282475292683,
+      "A_threshold": 7.507258643670251,
+      "A_margin": 1.8175799746944206,
+      "L_max": 6.164466857910156,
+      "L_mean": 5.4191433668136595,
+      "L_threshold": 8.48061686766133,
+      "L_margin": 2.3161500097511745,
+      "min_log10p": -0.6153088373521463
+    }
+  }
+}
+
+wrote SIGIL/results/fpr_study.json
+fpr exit: 0
+
+== numerical verification of the analytic claims (00:23:45)
+[ok]   T1_translation_invariance
+[ok]   T2_filtering_invariance
+[ok]   T3_gain_invariance
+[ok]   T4_exact_null
+[ok]   T5_multiplicity
+[ok]   T6_codebook_collapse
+[ok]   T7_anchors
+[ok]   T8_fusion_validity
+[ok]   T9_nonce_null
+
+wrote SIGIL/results/theory_checks.json
+{
+  "config": {
+    "canon": 512,
+    "n_carriers": 4096,
+    "alpha_nats": 0.46,
+    "n_images": 80
+  },
+  "T1_translation_invariance": {
+    "n": 12,
+    "mean_statistic": 14.843315493949707,
+    "max_abs_difference": 1.0658141036401503e-14,
+    "max_relative_difference": 7.180431515280986e-16
+  },
+  "T2_filtering_invariance": {
+    "n": 12,
+    "max_abs_difference": 0.008295090219460732,
+    "per_filter": [
+      {
+        "filter": "gauss",
+        "delta": 0.0022980700698589374,
+        "t0": 15.927525759684276,
+        "t1": 15.929823829754135
+      },
+      {
+        "filter": "lowpass",
+        "delta": 0.0007774658489907438,
+        "t0": 15.927525759684276,
+        "t1": 15.928303225533266
+      },
+      {
+        "filter": "boost",
+        "delta": 0.004309043423351255,
+        "t0": 15.927525759684276,
+        "t1": 15.931834803107627
+      },
+      {
+        "filter": "gauss",
+        "delta": 0.004194882665441213,
+        "t0": 14.046608665126662,
+        "t1": 14.042413782461221
+      },
+      {
+        "filter": "lowpass",
+        "delta": 0.002848918488961516,
+        "t0": 14.046608665126662,
+        "t1": 14.0437597466377
+      },
+      {
+        "filter": "boost",
+        "delta": 0.003429616776337241,
+        "t0": 14.046608665126662,
+        "t1": 14.043179048350325
+      }
+    ]
+  },
+  "T3_gain_invariance": {
+    "n": 16,
+    "max_abs_difference": 5.797765505022312e-06
+  },
+  "T4_exact_null": {
+    "n_samples": 396,
+    "mean": 0.09598777297418272,
+    "std": 1.006961825460571,
+    "max": 2.602035425060973,
+    "tail": [
+      {
+        "t": 1.0,
+        "empirical": 0.18686868686868688,
+        "hoeffding_bound": 0.6065306597126334
+      },
+      {
+        "t": 1.5,
+        "empirical": 0.08333333333333333,
+        "hoeffding_bound": 0.32465246735834974
+      },
+      {
+        "t": 2.0,
+        "empirical": 0.022727272727272728,
+        "hoeffding_bound": 0.1353352832366127
+      },
+      {
+        "t": 2.5,
+        "empirical": 0.0025252525252525255,
+        "hoeffding_bound": 0.04393693362340742
+      },
+      {
+        "t": 3.0,
+        "empirical": 0.0,
+        "hoeffding_bound": 0.011108996538242306
+      },
+      {
+        "t": 3.5,
+        "empirical": 0.0,
+        "hoeffding_bound": 0.002187491118182885
+      }
+    ],
+    "note": "empirical <= bound at every t means the null is conservative"
+  },
+  "T5_multiplicity": {
+    "n_images": 12,
+    "max_null_statistic": 5.652032375335693,
+    "mean_null_statistic": 3.837026218573252,
+    "median_hypotheses_per_anchor_family": 811200,
+    "expected_max_sqrt2logN": 5.21656398634562,
+    "threshold_at_alpha_1e-6": 7.4056438571920715,
+    "min_corrected_p": 0.10006587569143442,
+    "false_positives_at_1e-6": 0
+  },
+  "T6_codebook_collapse": {
+    "n_refs": 24,
+    "content_derived": {
+      "precision_at_k": 0.09487179487179487,
+      "chance_precision": 0.00743865966796875,
+      "lift_over_chance": 12.753882971729125,
+      "k": 1950
+    },
+    "static_carrier_control": {
+theory exit: 0
+
+== survival table (00:24:03)
+wrote SIGIL/results/SURVIVAL.md
+admissible attacks SIGIL does not fully survive (4):
+  stack_img2img_crop_jpeg        0.0%
+  rotate_30                      2.5%
+  rotate_15                     27.5%
+  crop_0.75                     46.2%
+
+== figures and tables (00:24:03)
+findfont: Failed to find font weight medium, now using 400.
+findfont: Failed to find font weight medium, now using 400.
+figures:
+  fig01_separation
+  fig02_tpr_by_attack
+  fig03_strength_curves
+  fig07_complementarity
+  fig08_quality_frontier
+  fig09_fidelity
+  fig04_codebook_collapse
+  fig05_null_bound
+  fig12_arena_heatmap
+  fig11_arena_families
+  fig10_visual
+wrote 8 table files to SIGIL/paper/tables
+
+== manuscript (00:24:17)
+-rw-rw-r-- 1 navin navin 452809 Aug  1 00:24 SIGIL/paper/sigil.pdf
+
+== FINALIZE-COMPLETE (00:24:18)

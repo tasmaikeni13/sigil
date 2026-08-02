@@ -1,0 +1,49 @@
+resumed from /tmp/claude-1034/-home-navin-Content-Derived-Holographic-Spread-Spectrum/b64bf522-50b8-40ac-8f31-e5440661b143/scratchpad/resume15k.pt at step 15000
+Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]
+/home/navin/Content-Derived-Holographic-Spread-Spectrum/.venv/lib/python3.11/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+/home/navin/Content-Derived-Holographic-Spread-Spectrum/.venv/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=AlexNet_Weights.IMAGENET1K_V1`. You can also use `weights=AlexNet_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]
+/home/navin/Content-Derived-Holographic-Spread-Spectrum/.venv/lib/python3.11/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+/home/navin/Content-Derived-Holographic-Spread-Spectrum/.venv/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=AlexNet_Weights.IMAGENET1K_V1`. You can also use `weights=AlexNet_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+Loading model from: /home/navin/Content-Derived-Holographic-Spread-Spectrum/.venv/lib/python3.11/site-packages/lpips/weights/v0.1/alex.pth
+Loading model from: /home/navin/Content-Derived-Holographic-Spread-Spectrum/.venv/lib/python3.11/site-packages/lpips/weights/v0.1/alex.pth
+VAE bank: ['stabilityai/sd-vae-ft-mse', 'madebyollin/sdxl-vae-fp16-fix']
+Loading pipeline components...:   0%|          | 0/5 [00:00<?, ?it/s]Loading pipeline components...:  40%|████      | 2/5 [00:00<00:00, 12.22it/s]Loading pipeline components...:   0%|          | 0/5 [00:00<?, ?it/s]Loading pipeline components...:  80%|████████  | 4/5 [00:00<00:00,  6.14it/s]Loading pipeline components...: 100%|██████████| 5/5 [00:00<00:00,  8.23it/s]
+You have disabled the safety checker for <class 'diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_img2img.StableDiffusionImg2ImgPipeline'> by passing `safety_checker=None`. Ensure that you abide to the conditions of the Stable Diffusion license and do not expose unfiltered results in services or applications open to the public. Both the diffusers team and Hugging Face strongly recommend to keep the safety filter enabled in all public facing circumstances, disabling it only for use-cases that involve analyzing network behavior or auditing its results. For more information, please have a look at https://github.com/huggingface/diffusers/pull/254 .
+Loading pipeline components...:  20%|██        | 1/5 [00:00<00:01,  2.89it/s]Loading pipeline components...:  60%|██████    | 3/5 [00:00<00:00,  6.40it/s]Loading pipeline components...: 100%|██████████| 5/5 [00:00<00:00,  8.79it/s]
+You have disabled the safety checker for <class 'diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_img2img.StableDiffusionImg2ImgPipeline'> by passing `safety_checker=None`. Ensure that you abide to the conditions of the Stable Diffusion license and do not expose unfiltered results in services or applications open to the public. Both the diffusers team and Hugging Face strongly recommend to keep the safety filter enabled in all public facing circumstances, disabling it only for use-cases that involve analyzing network behavior or auditing its results. For more information, please have a look at https://github.com/huggingface/diffusers/pull/254 .
+SD-Turbo regeneration active in the noise layer
+step  15250  acc=0.8332  psnr=31.11  msg=0.0020  lpips=0.0064  last=blur       0.67 it/s
+W0731 20:59:41.543000 3641453 torch/distributed/elastic/agent/server/api.py:719] Received 15 death signal, shutting down workers
+Traceback (most recent call last):
+  File "/home/navin/Content-Derived-Holographic-Spread-Spectrum/./.venv/bin/torchrun", line 6, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/navin/Content-Derived-Holographic-Spread-Spectrum/.venv/lib/python3.11/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 355, in wrapper
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/home/navin/Content-Derived-Holographic-Spread-Spectrum/.venv/lib/python3.11/site-packages/torch/distributed/run.py", line 918, in main
+    run(args)
+  File "/home/navin/Content-Derived-Holographic-Spread-Spectrum/.venv/lib/python3.11/site-packages/torch/distributed/run.py", line 909, in run
+    elastic_launch(
+  File "/home/navin/Content-Derived-Holographic-Spread-Spectrum/.venv/lib/python3.11/site-packages/torch/distributed/launcher/api.py", line 138, in __call__
+    return launch_agent(self._config, self._entrypoint, list(args))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/navin/Content-Derived-Holographic-Spread-Spectrum/.venv/lib/python3.11/site-packages/torch/distributed/launcher/api.py", line 260, in launch_agent
+    result = agent.run()
+             ^^^^^^^^^^^
+  File "/home/navin/Content-Derived-Holographic-Spread-Spectrum/.venv/lib/python3.11/site-packages/torch/distributed/elastic/metrics/api.py", line 137, in wrapper
+    result = f(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^
+  File "/home/navin/Content-Derived-Holographic-Spread-Spectrum/.venv/lib/python3.11/site-packages/torch/distributed/elastic/agent/server/api.py", line 711, in run
+    result = self._invoke_run(role)
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/navin/Content-Derived-Holographic-Spread-Spectrum/.venv/lib/python3.11/site-packages/torch/distributed/elastic/agent/server/api.py", line 870, in _invoke_run
+    time.sleep(monitor_interval)
+  File "/home/navin/Content-Derived-Holographic-Spread-Spectrum/.venv/lib/python3.11/site-packages/torch/distributed/elastic/multiprocessing/api.py", line 84, in _terminate_process_handler
+    raise SignalException(f"Process {os.getpid()} got signal: {sigval}", sigval=sigval)
+torch.distributed.elastic.multiprocessing.api.SignalException: Process 3641453 got signal: 15

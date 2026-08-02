@@ -1,0 +1,128 @@
+[ok]   T1_translation_invariance
+[ok]   T2_filtering_invariance
+[ok]   T3_gain_invariance
+[ok]   T4_exact_null
+[ok]   T5_multiplicity
+[ok]   T6_codebook_collapse
+[ok]   T7_anchors
+[ok]   T8_fusion_validity
+[ok]   T9_nonce_null
+
+wrote SIGIL/results/theory_checks.json
+{
+  "config": {
+    "canon": 512,
+    "n_carriers": 4096,
+    "alpha_nats": 0.46,
+    "n_images": 80
+  },
+  "T1_translation_invariance": {
+    "n": 12,
+    "mean_statistic": 14.990595851608882,
+    "max_abs_difference": 2.842170943040401e-14,
+    "max_relative_difference": 1.8959692937991932e-15
+  },
+  "T2_filtering_invariance": {
+    "n": 12,
+    "max_abs_difference": 0.00390924988109731,
+    "per_filter": [
+      {
+        "filter": "gauss",
+        "delta": 0.0018164361407553287,
+        "t0": 15.275468614223746,
+        "t1": 15.27365217808299
+      },
+      {
+        "filter": "lowpass",
+        "delta": 0.0008638238584364188,
+        "t0": 15.275468614223746,
+        "t1": 15.27460479036531
+      },
+      {
+        "filter": "boost",
+        "delta": 0.0025011943102182244,
+        "t0": 15.275468614223746,
+        "t1": 15.272967419913527
+      },
+      {
+        "filter": "gauss",
+        "delta": 0.0014171645879876849,
+        "t0": 16.671507661133052,
+        "t1": 16.670090496545065
+      },
+      {
+        "filter": "lowpass",
+        "delta": 0.0002424236007065872,
+        "t0": 16.671507661133052,
+        "t1": 16.67175008473376
+      },
+      {
+        "filter": "boost",
+        "delta": 0.0033096729017998427,
+        "t0": 16.671507661133052,
+        "t1": 16.668197988231253
+      }
+    ]
+  },
+  "T3_gain_invariance": {
+    "n": 16,
+    "max_abs_difference": 7.322608048809798e-07
+  },
+  "T4_exact_null": {
+    "n_samples": 396,
+    "mean": -0.0027488341076926863,
+    "std": 0.9559120087723668,
+    "max": 3.2228768786828534,
+    "tail": [
+      {
+        "t": 1.0,
+        "empirical": 0.14393939393939395,
+        "hoeffding_bound": 0.6065306597126334
+      },
+      {
+        "t": 1.5,
+        "empirical": 0.05303030303030303,
+        "hoeffding_bound": 0.32465246735834974
+      },
+      {
+        "t": 2.0,
+        "empirical": 0.017676767676767676,
+        "hoeffding_bound": 0.1353352832366127
+      },
+      {
+        "t": 2.5,
+        "empirical": 0.005050505050505051,
+        "hoeffding_bound": 0.04393693362340742
+      },
+      {
+        "t": 3.0,
+        "empirical": 0.0025252525252525255,
+        "hoeffding_bound": 0.011108996538242306
+      },
+      {
+        "t": 3.5,
+        "empirical": 0.0,
+        "hoeffding_bound": 0.002187491118182885
+      }
+    ],
+    "note": "empirical <= bound at every t means the null is conservative"
+  },
+  "T5_multiplicity": {
+    "n_images": 12,
+    "max_null_statistic": 4.3576340675354,
+    "mean_null_statistic": 3.7170917789141336,
+    "median_hypotheses_per_anchor_family": 811200,
+    "expected_max_sqrt2logN": 5.21656398634562,
+    "threshold_at_alpha_1e-6": 7.4056438571920715,
+    "min_corrected_p": 1.0,
+    "false_positives_at_1e-6": 0
+  },
+  "T6_codebook_collapse": {
+    "n_refs": 24,
+    "content_derived": {
+      "precision_at_k": 0.08102564102564103,
+      "chance_precision": 0.00743865966796875,
+      "lift_over_chance": 10.892505456936226,
+      "k": 1950
+    },
+    "static_carrier_cont

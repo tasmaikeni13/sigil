@@ -1,0 +1,216 @@
+{
+  "config": {
+    "canon": 512,
+    "n_carriers": 4096,
+    "alpha_nats": 0.46,
+    "n_images": 80
+  },
+  "T1_translation_invariance": {
+    "n": 12,
+    "mean_statistic": 14.843315493949707,
+    "max_abs_difference": 1.0658141036401503e-14,
+    "max_relative_difference": 7.180431515280986e-16
+  },
+  "T2_filtering_invariance": {
+    "n": 12,
+    "max_abs_difference": 0.008295090219460732,
+    "per_filter": [
+      {
+        "filter": "gauss",
+        "delta": 0.0022980700698589374,
+        "t0": 15.927525759684276,
+        "t1": 15.929823829754135
+      },
+      {
+        "filter": "lowpass",
+        "delta": 0.0007774658489907438,
+        "t0": 15.927525759684276,
+        "t1": 15.928303225533266
+      },
+      {
+        "filter": "boost",
+        "delta": 0.004309043423351255,
+        "t0": 15.927525759684276,
+        "t1": 15.931834803107627
+      },
+      {
+        "filter": "gauss",
+        "delta": 0.004194882665441213,
+        "t0": 14.046608665126662,
+        "t1": 14.042413782461221
+      },
+      {
+        "filter": "lowpass",
+        "delta": 0.002848918488961516,
+        "t0": 14.046608665126662,
+        "t1": 14.0437597466377
+      },
+      {
+        "filter": "boost",
+        "delta": 0.003429616776337241,
+        "t0": 14.046608665126662,
+        "t1": 14.043179048350325
+      }
+    ]
+  },
+  "T3_gain_invariance": {
+    "n": 16,
+    "max_abs_difference": 5.797765505022312e-06
+  },
+  "T4_exact_null": {
+    "n_samples": 396,
+    "mean": 0.09598777297418272,
+    "std": 1.006961825460571,
+    "max": 2.602035425060973,
+    "tail": [
+      {
+        "t": 1.0,
+        "empirical": 0.18686868686868688,
+        "hoeffding_bound": 0.6065306597126334
+      },
+      {
+        "t": 1.5,
+        "empirical": 0.08333333333333333,
+        "hoeffding_bound": 0.32465246735834974
+      },
+      {
+        "t": 2.0,
+        "empirical": 0.022727272727272728,
+        "hoeffding_bound": 0.1353352832366127
+      },
+      {
+        "t": 2.5,
+        "empirical": 0.0025252525252525255,
+        "hoeffding_bound": 0.04393693362340742
+      },
+      {
+        "t": 3.0,
+        "empirical": 0.0,
+        "hoeffding_bound": 0.011108996538242306
+      },
+      {
+        "t": 3.5,
+        "empirical": 0.0,
+        "hoeffding_bound": 0.002187491118182885
+      }
+    ],
+    "note": "empirical <= bound at every t means the null is conservative"
+  },
+  "T5_multiplicity": {
+    "n_images": 12,
+    "max_null_statistic": 5.652032375335693,
+    "mean_null_statistic": 3.837026218573252,
+    "median_hypotheses_per_anchor_family": 811200,
+    "expected_max_sqrt2logN": 5.21656398634562,
+    "threshold_at_alpha_1e-6": 7.4056438571920715,
+    "min_corrected_p": 0.10006587569143442,
+    "false_positives_at_1e-6": 0
+  },
+  "T6_codebook_collapse": {
+    "n_refs": 24,
+    "content_derived": {
+      "precision_at_k": 0.09487179487179487,
+      "chance_precision": 0.00743865966796875,
+      "lift_over_chance": 12.753882971729125,
+      "k": 1950
+    },
+    "static_carrier_control": {
+      "precision_at_k": 0.500254712175242,
+      "chance_precision": 0.007488250732421875,
+      "lift_over_chance": 66.8052833767023,
+      "k": 1963
+    }
+  },
+  "T7_anchors": {
+    "nonce": {
+      "diversity": 1.0,
+      "entropy_bits": 20.0,
+      "note": "uniform per-image nonce; independent of content"
+    },
+    "spectral": {
+      "diversity": 1.0,
+      "n_images": 80,
+      "collisions": 0,
+      "birthday_entropy_bits_lower_bound": null,
+      "delta": 0.7,
+      "list_size": 64
+    },
+    "histogram": {
+      "diversity": 0.9875,
+      "n_images": 80,
+      "collisions": 1,
+      "birthday_entropy_bits_lower_bound": 11.643856189774725,
+      "delta": 0.7,
+      "list_size": 64
+    }
+  },
+  "T8_fusion_validity": {
+    "n_trials": 400000,
+    "rows": [
+      {
+        "dependence": "independent",
+        "alpha": 0.01,
+        "empirical_fpr": 0.010025,
+        "guarantee": 0.01
+      },
+      {
+        "dependence": "independent",
+        "alpha": 0.001,
+        "empirical_fpr": 0.0009525,
+        "guarantee": 0.001
+      },
+      {
+        "dependence": "independent",
+        "alpha": 0.0001,
+        "empirical_fpr": 0.000105,
+        "guarantee": 0.0001
+      },
+      {
+        "dependence": "strongly correlated",
+        "alpha": 0.01,
+        "empirical_fpr": 0.006715,
+        "guarantee": 0.01
+      },
+      {
+        "dependence": "strongly correlated",
+        "alpha": 0.001,
+        "empirical_fpr": 0.0007,
+        "guarantee": 0.001
+      },
+      {
+        "dependence": "strongly correlated",
+        "alpha": 0.0001,
+        "empirical_fpr": 7e-05,
+        "guarantee": 0.0001
+      },
+      {
+        "dependence": "anti-correlated",
+        "alpha": 0.01,
+        "empirical_fpr": 0.0100075,
+        "guarantee": 0.01
+      },
+      {
+        "dependence": "anti-correlated",
+        "alpha": 0.001,
+        "empirical_fpr": 0.000985,
+        "guarantee": 0.001
+      },
+      {
+        "dependence": "anti-correlated",
+        "alpha": 0.0001,
+        "empirical_fpr": 9.75e-05,
+        "guarantee": 0.0001
+      }
+    ],
+    "note": "empirical <= alpha for every dependence structure"
+  },
+  "T9_nonce_null": {
+    "n_trials": 64,
+    "nonce_space": 1048576,
+    "max_statistic": 5.9774861335754395,
+    "mean_max": 4.926048994064331,
+    "expected_max_sqrt2logN": 5.265537695468319,
+    "threshold_at_alpha_1e-6": 7.440222331242956,
+    "false_positives": 0
+  }
+}

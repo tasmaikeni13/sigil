@@ -1,0 +1,10 @@
+spectral@delta=0.45    div=1.00 meanstab=0.53 identity=1.00 jpeg50=0.92 jpeg30=1.00 noise8=0.92 blur2=1.00 rot5=0.00 rot15=0.00 crop90=0.00 crop75=0.00 crop50=0.00 scale0.5=1.00 bright+12=0.83 contrast1.2=0.50 gamma1.3=0.25
+spectral@delta=0.7     div=1.00 meanstab=0.57 identity=1.00 jpeg50=1.00 jpeg30=0.92 noise8=1.00 blur2=1.00 rot5=0.00 rot15=0.00 crop90=0.00 crop75=0.00 crop50=0.00 scale0.5=1.00 bright+12=1.00 contrast1.2=0.67 gamma1.3=0.33
+spectral@delta=1.0     div=1.00 meanstab=0.59 identity=1.00 jpeg50=1.00 jpeg30=1.00 noise8=1.00 blur2=1.00 rot5=0.00 rot15=0.00 crop90=0.00 crop75=0.00 crop50=0.00 scale0.5=1.00 bright+12=1.00 contrast1.2=0.92 gamma1.3=0.33
+spectral@delta=1.4     div=1.00 meanstab=0.62 identity=1.00 jpeg50=1.00 jpeg30=1.00 noise8=1.00 blur2=1.00 rot5=0.00 rot15=0.00 crop90=0.00 crop75=0.00 crop50=0.00 scale0.5=1.00 bright+12=1.00 contrast1.2=1.00 gamma1.3=0.75
+histogram@delta=0.45   div=1.00 meanstab=0.63 identity=1.00 jpeg50=1.00 jpeg30=0.92 noise8=1.00 blur2=0.33 rot5=0.92 rot15=0.33 crop90=0.33 crop75=0.00 crop50=0.00 scale0.5=1.00 bright+12=1.00 contrast1.2=0.83 gamma1.3=0.17
+histogram@delta=0.7    div=1.00 meanstab=0.72 identity=1.00 jpeg50=1.00 jpeg30=1.00 noise8=1.00 blur2=0.67 rot5=0.83 rot15=0.67 crop90=0.58 crop75=0.17 crop50=0.00 scale0.5=1.00 bright+12=1.00 contrast1.2=0.83 gamma1.3=0.33
+histogram@delta=1.0    div=0.99 meanstab=0.78 identity=1.00 jpeg50=1.00 jpeg30=1.00 noise8=1.00 blur2=0.75 rot5=1.00 rot15=0.75 crop90=0.83 crop75=0.17 crop50=0.08 scale0.5=1.00 bright+12=1.00 contrast1.2=1.00 gamma1.3=0.33
+histogram@delta=1.4    div=0.80 meanstab=0.89 identity=1.00 jpeg50=1.00 jpeg30=1.00 noise8=1.00 blur2=0.92 rot5=1.00 rot15=0.92 crop90=0.92 crop75=0.50 crop50=0.42 scale0.5=1.00 bright+12=1.00 contrast1.2=1.00 gamma1.3=0.75
+
+wrote SIGIL/results/descriptor_calibration.json

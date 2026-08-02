@@ -1,0 +1,75 @@
+resumed from SIGIL/checkpoints/latent.pt at step 3000
+Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]
+/home/navin/Content-Derived-Holographic-Spread-Spectrum/.venv/lib/python3.11/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+/home/navin/Content-Derived-Holographic-Spread-Spectrum/.venv/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=AlexNet_Weights.IMAGENET1K_V1`. You can also use `weights=AlexNet_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+Setting up [LPIPS] perceptual loss: trunk [alex], v[0.1], spatial [off]
+/home/navin/Content-Derived-Holographic-Spread-Spectrum/.venv/lib/python3.11/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+/home/navin/Content-Derived-Holographic-Spread-Spectrum/.venv/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=AlexNet_Weights.IMAGENET1K_V1`. You can also use `weights=AlexNet_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+Loading model from: /home/navin/Content-Derived-Holographic-Spread-Spectrum/.venv/lib/python3.11/site-packages/lpips/weights/v0.1/alex.pth
+Loading model from: /home/navin/Content-Derived-Holographic-Spread-Spectrum/.venv/lib/python3.11/site-packages/lpips/weights/v0.1/alex.pth
+VAE bank: ['stabilityai/sd-vae-ft-mse', 'madebyollin/sdxl-vae-fp16-fix']
+step   3250  acc=0.8616  psnr=30.98  msg=0.6950  lpips=0.0043  last=crop       1.68 it/s
+step   3500  acc=0.8592  psnr=31.60  msg=0.4418  lpips=0.0115  last=vae        1.63 it/s
+step   3750  acc=0.8872  psnr=31.91  msg=0.6905  lpips=0.0078  last=crop       1.64 it/s
+step   4000  acc=0.8687  psnr=32.63  msg=0.0002  lpips=0.0245  last=identity   1.64 it/s
+  checkpoint at step 4000
+step   4250  acc=0.8973  psnr=32.44  msg=0.0021  lpips=0.0083  last=identity   1.64 it/s
+step   4500  acc=0.8754  psnr=32.51  msg=0.6224  lpips=0.0062  last=rotate     1.63 it/s
+step   4750  acc=0.8577  psnr=32.54  msg=0.0001  lpips=0.0063  last=jpeg       1.62 it/s
+step   5000  acc=0.8803  psnr=32.21  msg=0.3170  lpips=0.0078  last=vae        1.63 it/s
+  checkpoint at step 5000
+step   5250  acc=0.8592  psnr=32.00  msg=0.3727  lpips=0.0141  last=vae_jpeg   1.62 it/s
+step   5500  acc=0.8805  psnr=31.97  msg=0.0002  lpips=0.0120  last=identity   1.62 it/s
+step   5750  acc=0.8865  psnr=31.99  msg=0.4222  lpips=0.0123  last=vae_jpeg   1.63 it/s
+step   6000  acc=0.8556  psnr=31.70  msg=0.0025  lpips=0.0132  last=jpeg       1.62 it/s
+  checkpoint at step 6000
+step   6250  acc=0.7731  psnr=32.11  msg=0.0014  lpips=0.0033  last=jpeg       1.59 it/s
+step   6500  acc=0.7763  psnr=31.91  msg=0.4911  lpips=0.0058  last=vae        1.55 it/s
+step   6750  acc=0.7622  psnr=31.74  msg=0.1053  lpips=0.0068  last=rotate     1.52 it/s
+step   7000  acc=0.7809  psnr=31.73  msg=0.6622  lpips=0.0059  last=vae        1.50 it/s
+  checkpoint at step 7000
+step   7250  acc=0.8068  psnr=31.60  msg=0.4098  lpips=0.0092  last=noise      1.48 it/s
+step   7500  acc=0.8068  psnr=31.78  msg=0.0090  lpips=0.0042  last=whiten     1.47 it/s
+step   7750  acc=0.7969  psnr=31.57  msg=0.0028  lpips=0.0055  last=identity   1.45 it/s
+step   8000  acc=0.8017  psnr=32.03  msg=0.4332  lpips=0.0054  last=vae_jpeg   1.43 it/s
+  checkpoint at step 8000
+step   8250  acc=0.7917  psnr=31.77  msg=0.6551  lpips=0.0189  last=vae        1.42 it/s
+step   8500  acc=0.8070  psnr=31.52  msg=0.1147  lpips=0.0083  last=median     1.41 it/s
+step   8750  acc=0.8080  psnr=31.88  msg=0.4738  lpips=0.0085  last=vae        1.40 it/s
+step   9000  acc=0.8154  psnr=31.50  msg=0.0038  lpips=0.0076  last=colour     1.39 it/s
+  checkpoint at step 9000
+step   9250  acc=0.8094  psnr=31.61  msg=0.6756  lpips=0.0076  last=rotate     1.38 it/s
+step   9500  acc=0.8043  psnr=32.07  msg=0.0021  lpips=0.0080  last=noise      1.37 it/s
+step   9750  acc=0.8464  psnr=31.87  msg=0.0018  lpips=0.0104  last=noise      1.37 it/s
+step  10000  acc=0.8148  psnr=31.67  msg=0.0026  lpips=0.0063  last=whiten     1.36 it/s
+  checkpoint at step 10000
+step  10250  acc=0.8546  psnr=31.75  msg=0.0282  lpips=0.0045  last=median     1.35 it/s
+step  10500  acc=0.7984  psnr=31.84  msg=0.0007  lpips=0.0075  last=noise      1.35 it/s
+step  10750  acc=0.8356  psnr=31.96  msg=0.4958  lpips=0.0039  last=vae        1.34 it/s
+step  11000  acc=0.8106  psnr=31.96  msg=0.4290  lpips=0.0120  last=vae_jpeg   1.34 it/s
+  checkpoint at step 11000
+step  11250  acc=0.7481  psnr=31.89  msg=0.6131  lpips=0.0068  last=jpeg       1.33 it/s
+step  11500  acc=0.7775  psnr=31.87  msg=0.6800  lpips=0.0073  last=rotate     1.32 it/s
+step  11750  acc=0.7770  psnr=31.82  msg=0.0070  lpips=0.0081  last=elastic    1.32 it/s
+step  12000  acc=0.8078  psnr=31.85  msg=0.6300  lpips=0.0056  last=elastic    1.32 it/s
+  checkpoint at step 12000
+step  12250  acc=0.8023  psnr=31.87  msg=0.7006  lpips=0.0179  last=median     1.31 it/s
+step  12500  acc=0.8078  psnr=31.83  msg=0.0018  lpips=0.0061  last=colour     1.31 it/s
+step  12750  acc=0.7839  psnr=31.71  msg=0.6516  lpips=0.0065  last=crop       1.30 it/s
+step  13000  acc=0.7966  psnr=31.44  msg=0.6937  lpips=0.0071  last=vae        1.30 it/s
+  checkpoint at step 13000
+step  13250  acc=0.7554  psnr=31.69  msg=0.3838  lpips=0.0165  last=vae        1.30 it/s
+step  13500  acc=0.7767  psnr=31.73  msg=0.6470  lpips=0.0055  last=vae_jpeg   1.30 it/s
+step  13750  acc=0.7751  psnr=31.79  msg=0.4773  lpips=0.0156  last=vae        1.29 it/s
+step  14000  acc=0.8019  psnr=31.86  msg=0.3173  lpips=0.0084  last=vae        1.29 it/s
+  checkpoint at step 14000
+step  14250  acc=0.7848  psnr=31.82  msg=0.6867  lpips=0.0068  last=crop       1.29 it/s
+step  14500  acc=0.7882  psnr=31.85  msg=0.6950  lpips=0.0073  last=vae        1.28 it/s
+step  14750  acc=0.7580  psnr=31.89  msg=0.0005  lpips=0.0064  last=identity   1.28 it/s
+step  15000  acc=0.7569  psnr=31.89  msg=0.0040  lpips=0.0100  last=jpeg       1.28 it/s
+  checkpoint at step 15000
+done
