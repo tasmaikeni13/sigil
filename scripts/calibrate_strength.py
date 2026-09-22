@@ -74,7 +74,7 @@ def main():
     ap.add_argument("--corpus", default="data/corpus/photo")
     ap.add_argument("--limit", type=int, default=6)
     ap.add_argument("--max-size", type=int, default=448)
-    ap.add_argument("--device", default="cuda:0")
+    ap.add_argument("--device", default="tpu")
     ap.add_argument("--checkpoint", default="checkpoints/latent.pt")
     ap.add_argument("--alpha", type=float, default=1e-6)
     ap.add_argument(

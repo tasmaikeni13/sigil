@@ -257,7 +257,7 @@ def main():
     ap.add_argument("--out", default="results/benchmark.csv")
     ap.add_argument("--summary", default="results/summary.json")
     ap.add_argument("--checkpoint", default="checkpoints/latent.pt")
-    ap.add_argument("--device", default="cuda:0")
+    ap.add_argument("--device", default="tpu")
     ap.add_argument("--alpha", type=float, default=1e-6)
     ap.add_argument("--min-psnr", type=float, default=24.0)
     ap.add_argument("--min-ssim", type=float, default=0.70)

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Reproduce the experiment pipeline used for the SIGIL paper.
+# Reproduce the experiment pipeline used for the SIGIL paper on Google Cloud TPU v4-32.
 #
 # Run from the repository root with the virtual environment active. Each step
 # writes to a predictable location and can be rerun after it completes.
@@ -9,8 +9,12 @@ PY="${PY:-./.venv/bin/python}"
 export HF_HOME="${HF_HOME:-$PWD/data/hf}"
 LIMIT="${LIMIT:-20}"          # images taken from each corpus
 STEPS="${STEPS:-12000}"
-GPUS="${GPUS:-2}"
+WORKERS="${WORKERS:-4}"
 PHOTO_SOURCE="${PHOTO_SOURCE:-}"
+
+# Configure Google Cloud TPU v4 environment defaults
+export TPU_CHIPS_PER_HOST_BOUNDS="${TPU_CHIPS_PER_HOST_BOUNDS:-2,2,1}"
+export TPU_HOST_BOUNDS="${TPU_HOST_BOUNDS:-1,1,1}"
 
 say() { printf '\n\033[1m== %s\033[0m\n' "$*"; }
 
@@ -57,8 +61,8 @@ $PY scripts/calibrate_descriptor.py --n-diversity 80 --n-stability 12
 
 say "3/8  train the learned stratum  ->  checkpoints/latent.pt"
 if [ ! -f checkpoints/latent.pt ]; then
-  $PY -m torch.distributed.run --nproc_per_node="$GPUS" scripts/train_latent.py \
-      --steps "$STEPS" --batch 8 --workers 4 --n-bits 1024 \
+  $PY scripts/train_latent.py \
+      --steps "$STEPS" --batch 8 --workers "$WORKERS" --n-bits 1024 \
       --vae-from 600 --adversarial-from 9000 --severity-steps 3500 --turbo \
       --target-psnr 37.0 --out checkpoints \
       --data data/div2k/DIV2K_train_HR data/corpus/photo data/corpus/synthetic
@@ -71,8 +75,8 @@ say "5a/8  the full attack benchmark  ->  results/benchmark.csv"
 $PY -u scripts/benchmark.py --limit "$LIMIT"
 
 say "5b/8  the arena: SIGIL vs SynthID-style vs Stable-Signature-style,"
-say "      including the reverse-SynthID removal suite, sharded over both GPUs"
-$PY -u scripts/arena.py --limit "$LIMIT" --workers "$GPUS"
+say "      including the reverse-SynthID removal suite, sharded across TPU workers"
+$PY -u scripts/arena.py --limit "$LIMIT" --workers "$WORKERS"
 
 say "5c/8  larger-sample false-positive margin  ->  results/fpr_study.json"
 $PY -u scripts/fpr_study.py --limit 150

@@ -97,9 +97,7 @@ def correlate_all_nonces_batch(
     """Every codeword correlation for a *batch* of logit vectors.
 
     The detector evaluates a hundred-odd geometric hypotheses, and running one
-    transform per hypothesis leaves the GPU launching tiny kernels: measured, it
-    is the single largest cost in the whole detector, larger than the analytic
-    stratum's entire resynchronisation search.  Batching the scatter and the
+    transform per hypothesis causes high dispatch overhead; batching the scatter and the
     transform turns it into a handful of large operations.
     """
     dev = logits.device
@@ -244,7 +242,12 @@ def hypothesis_validity(h: GeoHypothesis, grid: int, device) -> torch.Tensor:
     """
     th = math.radians(h.rotation)
     c, s = math.cos(th) / h.zoom, math.sin(th) / h.zoom
-    lin = (torch.arange(grid, device=device, dtype=torch.float32) + 0.5) / grid * 2 - 1
+    torch_dev = (
+        "cpu" if device is not None and str(device).startswith("tpu") else device
+    )
+    lin = (
+        torch.arange(grid, device=torch_dev, dtype=torch.float32) + 0.5
+    ) / grid * 2 - 1
     vy, vx = torch.meshgrid(lin, lin, indexing="ij")
     sx = c * vx - s * vy
     sy = s * vx + c * vy
@@ -298,7 +301,7 @@ class LatentStratum:
     def __init__(
         self,
         checkpoint: str | Path,
-        device: str = "cuda:0",
+        device: str = "tpu",
         hypotheses: Sequence[GeoHypothesis] = DEFAULT_HYPOTHESES,
         squash: float = 2.0,
         search_top: int = 12,
@@ -310,8 +313,9 @@ class LatentStratum:
         cfg_fields = LatentConfig.__dataclass_fields__.keys()
         self.cfg = LatentConfig(**{k: v for k, v in raw.items() if k in cfg_fields})
         self.device = device
-        self.encoder = Encoder(self.cfg).to(device).eval()
-        self.decoder = Decoder(self.cfg).to(device).eval()
+        self.torch_device = "cpu" if str(device).startswith("tpu") else device
+        self.encoder = Encoder(self.cfg).to(self.torch_device).eval()
+        self.decoder = Decoder(self.cfg).to(self.torch_device).eval()
         self.encoder.load_state_dict(ck["encoder"])
         self.decoder.load_state_dict(ck["decoder"])
         for p in list(self.encoder.parameters()) + list(self.decoder.parameters()):
@@ -343,7 +347,7 @@ class LatentStratum:
         n = self.cfg.canon
         small = np.stack([resize(rgb[..., c], (n, n)) for c in range(3)], axis=-1)
         t = torch.from_numpy(np.ascontiguousarray(small)).permute(2, 0, 1)[None]
-        return t.to(self.device).float().clamp(0, 1)
+        return t.to(self.torch_device).float().clamp(0, 1)
 
     def random_nonce(self, rng: Optional[np.random.Generator] = None) -> int:
         rng = rng or np.random.default_rng()
@@ -362,7 +366,7 @@ class LatentStratum:
         nonce = self.random_nonce() if nonce is None else int(nonce) % self.code.size
         msg = self.code.codeword(nonce)
         x = self._canon_tensor(rgb)
-        m = torch.from_numpy(msg.astype(np.float32))[None].to(self.device)
+        m = torch.from_numpy(msg.astype(np.float32))[None].to(self.torch_device)
         residual = self.encoder(x, m)
         amp = self.cfg.strength if strength is None else float(strength)
         delta = (amp * residual * perceptual_mask(x))[0]
@@ -516,7 +520,7 @@ class LatentStratum:
         if expected_nonce is not None:
             want = torch.from_numpy(
                 self.code.codeword(int(expected_nonce)).astype(np.float32)
-            ).to(self.device)
+            ).to(self.torch_device)
             acc = float(((raw_logits > 0).float() == want).float().mean())
         det = LatentDetection(
             statistic=float(best_t),

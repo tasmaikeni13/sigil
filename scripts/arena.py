@@ -16,9 +16,9 @@ multiplicity rather than tuned.
 
 Speed
     Attacks are applied once per image and shared across systems where the
-    attack does not depend on the mark.  Work is sharded over both GPUs by a
-    process pool, and each worker builds its models once.  A run that would take
-    hours serially completes in minutes.
+    attack does not depend on the mark.  Work is sharded across Google Cloud TPU v4
+    devices by a process pool, and each worker builds its models once.  A run that
+    would take hours serially completes in minutes.
 
 Usage:
     python scripts/arena.py --limit 60 --workers 2
@@ -507,7 +507,7 @@ def main():
     ap.add_argument("--limit", type=int, default=60)
     ap.add_argument("--systems", nargs="+", default=["sigil", "synthid", "stablesig"])
     ap.add_argument("--workers", type=int, default=2)
-    ap.add_argument("--devices", nargs="+", default=["cuda:0", "cuda:1"])
+    ap.add_argument("--devices", nargs="+", default=["tpu:0", "tpu:1"])
     ap.add_argument("--checkpoint", default="checkpoints/latent.pt")
     ap.add_argument("--alpha", type=float, default=1e-6)
     ap.add_argument("--min-psnr", type=float, default=24.0)

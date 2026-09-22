@@ -316,7 +316,7 @@ class VAEBank(nn.Module):
     def __init__(
         self,
         model_ids: Sequence[str],
-        device: str = "cuda:0",
+        device: str = "tpu",
         dtype: torch.dtype = torch.float16,
     ):
         super().__init__()
@@ -389,21 +389,22 @@ class TurboRegen:
 
     def __init__(
         self,
-        device: str = "cuda:0",
+        device: str = "tpu",
         model_id: str = "stabilityai/sd-turbo",
         size: int = 256,
     ):
         import torch as _t
         from diffusers import AutoPipelineForImage2Image
 
-        _t.backends.cudnn.enabled = False
+        torch_dev = "cpu" if str(device).startswith("tpu") else device
         self.pipe = AutoPipelineForImage2Image.from_pretrained(
-            model_id, torch_dtype=_t.float16, variant="fp16"
-        ).to(device)
+            model_id, torch_dtype=_t.float32
+        ).to(torch_dev)
         self.pipe.set_progress_bar_config(disable=True)
         if hasattr(self.pipe, "safety_checker"):
             self.pipe.safety_checker = None
         self.device = device
+        self.torch_device = torch_dev
         self.size = size
 
     def __call__(self, x: torch.Tensor, strength: float = 0.25) -> torch.Tensor:
@@ -416,8 +417,7 @@ class TurboRegen:
             )
             steps = max(2, int(math.ceil(2.0 / max(strength, 1e-3))))
             # One batched call, not one call per image: the sampler is the
-            # dominant cost in the whole training step, and looping wastes most
-            # of the GPU.
+            # dominant cost in the whole training step, and looping causes underutilisation.
             pil = [_I.fromarray(a, "RGB").resize((self.size, self.size)) for a in arr]
             res = self.pipe(
                 prompt=[""] * len(pil),

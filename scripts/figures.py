@@ -880,7 +880,7 @@ def main():
     ap.add_argument("--out", default="results/figures")
     ap.add_argument("--corpus", default="data/corpus/natural")
     ap.add_argument("--checkpoint", default="checkpoints/latent.pt")
-    ap.add_argument("--device", default="cuda:0")
+    ap.add_argument("--device", default="tpu")
     ap.add_argument("--alpha", type=float, default=1e-6)
     ap.add_argument("--min-psnr", type=float, default=24.0)
     args = ap.parse_args()

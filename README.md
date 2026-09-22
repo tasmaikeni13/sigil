@@ -17,8 +17,8 @@ and the scripts used to generate the paper's tables and figures.
 
 > **Status:** research prototype. The analytic stratum runs without a learned
 > checkpoint. The learned stratum requires trained weights, and the complete
-> evaluation requires local image data, model downloads, and a CUDA-capable
-> machine. The reported measurements are not a production guarantee.
+> evaluation requires local image data, model downloads, and a Google Cloud TPU v4
+> environment. The reported measurements are not a production guarantee.
 
 ## Results at a glance
 
@@ -85,17 +85,17 @@ python -m pip install --upgrade pip
 python -m pip install numpy pillow opencv-python scikit-image ruff
 ```
 
-The learned model and full benchmark additionally use PyTorch and the
-experiment tools:
+The learned model, TPU acceleration, and full benchmark use JAX with libtpu,
+PyTorch, and experiment tools:
 
 ```bash
+python -m pip install "jax[tpu]" -f https://storage.googleapis.com/jax-releases/libtpu_releases.html
 python -m pip install torch torchvision pandas matplotlib
 python -m pip install diffusers transformers accelerate
 ```
 
-Install a CUDA build of PyTorch appropriate for the machine when GPU execution
-is available. Triton is optional; `sigil.kernels` falls back to the reference
-PyTorch scan when Triton is not installed.
+`sigil.kernels` executes high-throughput fused resynchronisation scan kernels
+compiled natively for Google Cloud TPU v4 (including v4-32 pod slices) via JAX and XLA.
 
 The repository does not currently define a packaged `pip install -e .` entry
 point. Run the examples and scripts from the repository root so Python can
@@ -133,7 +133,7 @@ The full pipeline expects these inputs outside the source tree:
 - the photographic evaluation images, supplied through the `PHOTO_SOURCE`
   environment variable or placed under `data/corpus/photo/`;
 - optional synthetic images under `data/corpus/synthetic/`;
-- a CUDA device for learned training and the generative attacks.
+- a Google Cloud TPU v4 accelerator for learned training and detection.
 
 The `images/` directory contains dataset documentation and metadata, not a
 license grant for redistributing image files. Read
@@ -144,7 +144,7 @@ Run the complete pipeline from the repository root in a Bash-compatible shell:
 
 ```bash
 export PHOTO_SOURCE=/path/to/photographs
-LIMIT=20 STEPS=12000 GPUS=1 bash run_all.sh
+LIMIT=20 STEPS=12000 bash run_all.sh
 ```
 
 `run_all.sh` builds the corpus, calibrates content anchors, trains the learned

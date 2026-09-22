@@ -72,11 +72,11 @@ def generate_synthetic(
     import torch
     from diffusers import AutoPipelineForText2Image
 
-    torch.backends.cudnn.enabled = False
+    torch_dev = "cpu" if str(device).startswith("tpu") else device
     pipe = AutoPipelineForText2Image.from_pretrained(
-        "stabilityai/sd-turbo", torch_dtype=torch.float16, variant="fp16"
+        "stabilityai/sd-turbo", torch_dtype=torch.float32
     )
-    pipe.to(device)
+    pipe.to(torch_dev)
     pipe.set_progress_bar_config(disable=True)
     if hasattr(pipe, "safety_checker"):
         pipe.safety_checker = None
@@ -87,7 +87,7 @@ def generate_synthetic(
         subject = SUBJECTS[i % len(SUBJECTS)]
         style = STYLES[(i // len(SUBJECTS)) % len(STYLES)]
         prompt = f"{subject}, {style}"
-        gen = torch.Generator(device=device).manual_seed(seed + i)
+        gen = torch.Generator(device=torch_dev).manual_seed(seed + i)
         img = pipe(
             prompt=prompt,
             num_inference_steps=4,
@@ -140,7 +140,7 @@ def main():
     ap.add_argument("--n-natural", type=int, default=100)
     ap.add_argument("--natural-max-size", type=int, default=1024)
     ap.add_argument("--synthetic-size", type=int, default=512)
-    ap.add_argument("--device", default="cuda:1")
+    ap.add_argument("--device", default="tpu")
     ap.add_argument("--seed", type=int, default=20260727)
     args = ap.parse_args()
 

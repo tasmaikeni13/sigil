@@ -3,9 +3,9 @@
 
 A kernel microbenchmark answers whether one stage got faster.  The number that
 matters is whether a *detection* got faster, since the scan shares the budget
-with a spectrum, a few dozen network passes and a Hadamard search.  This runs
-real images through the real detector both ways and reports the split, so the
-speed claim in the paper is about the thing the user waits for.
+with a spectrum, network passes, and hypothesis searches.  This runs real
+images through the real detector both ways and reports the split, so the speed
+claim in the paper is about the thing the user waits for.
 
 Toggling is by raising the fused path's work threshold above anything the
 detector will ask for, which leaves every other line of code identical.
@@ -31,15 +31,11 @@ def main():
     ap.add_argument("--corpus", default="data/corpus/photo")
     ap.add_argument("--limit", type=int, default=8)
     ap.add_argument("--max-size", type=int, default=512)
-    ap.add_argument("--device", default="cuda:0")
+    ap.add_argument("--device", default="tpu")
     ap.add_argument("--checkpoint", default="checkpoints/latent.pt")
     ap.add_argument("--latent-strength", type=float, default=0.045)
     ap.add_argument("--analytic-alpha", type=float, default=0.46)
     args = ap.parse_args()
-
-    import torch
-
-    torch.set_grad_enabled(False)
 
     paths = list_images(args.corpus)[: args.limit]
     if not paths:
@@ -74,11 +70,11 @@ def main():
     results = {}
     for label, thresh in (("fused", original), ("tensor", 1 << 62)):
         K.MIN_WORK = thresh
-        run()  # warm caches, JIT, cuDNN autotune
-        torch.cuda.synchronize()
+        run()  # warm caches and JIT
+        K.tpu_synchronize()
         t0 = time.perf_counter()
         stats = run()
-        torch.cuda.synchronize()
+        K.tpu_synchronize()
         results[label] = ((time.perf_counter() - t0) / len(marked), stats)
     K.MIN_WORK = original
 

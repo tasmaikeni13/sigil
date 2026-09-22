@@ -40,7 +40,7 @@ def main():
     ap.add_argument("--corpus", default="data/corpus/photo")
     ap.add_argument("--limit", type=int, default=12)
     ap.add_argument("--max-size", type=int, default=512)
-    ap.add_argument("--device", default="cuda:0")
+    ap.add_argument("--device", default="tpu")
     ap.add_argument("--strength", type=float, default=None)
     ap.add_argument("--alpha", type=float, default=1e-6)
     ap.add_argument(
@@ -151,7 +151,6 @@ def main():
             "frontier": rows,
         }
         print()
-        torch.cuda.empty_cache()
 
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text(json.dumps(report, indent=2))

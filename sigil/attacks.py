@@ -566,13 +566,14 @@ def _get_vae(model_id: str, device: str):
     import torch
     from diffusers import AutoencoderKL
 
+    torch_dev = "cpu" if str(device).startswith("tpu") else device
     try:
-        vae = AutoencoderKL.from_pretrained(model_id, torch_dtype=torch.float16)
+        vae = AutoencoderKL.from_pretrained(model_id, torch_dtype=torch.float32)
     except Exception:
         vae = AutoencoderKL.from_pretrained(
-            model_id, subfolder="vae", torch_dtype=torch.float16
+            model_id, subfolder="vae", torch_dtype=torch.float32
         )
-    vae = vae.to(device).eval()
+    vae = vae.to(torch_dev).eval()
     vae.requires_grad_(False)
     _VAE_CACHE[key] = vae
     return vae
@@ -582,7 +583,7 @@ def vae_roundtrip(
     image: Array,
     model_id: str = "stabilityai/sd-vae-ft-mse",
     latent_noise: float = 0.0,
-    device: str = "cuda:0",
+    device: str = "tpu",
     seed: int = 0,
     tile: int = 512,
 ) -> AttackResult:
@@ -594,17 +595,18 @@ def vae_roundtrip(
     """
     import torch
 
+    torch_dev = "cpu" if str(device).startswith("tpu") else device
     src = to_float01(image)
     h, w = src.shape[:2]
     vae = _get_vae(model_id, device)
     hh, ww = min(tile, (h // 8) * 8), min(tile, (w // 8) * 8)
     work = np.stack([resize(src[..., c], (hh, ww)) for c in range(3)], -1)
-    x = torch.from_numpy(work).permute(2, 0, 1)[None].to(device).float()
+    x = torch.from_numpy(work).permute(2, 0, 1)[None].to(torch_dev).float()
     with torch.no_grad():
-        z = vae.encode((x * 2 - 1).half()).latent_dist.mode()
+        z = vae.encode(x * 2 - 1).latent_dist.mode()
         if latent_noise > 0:
-            g = torch.Generator(device=device).manual_seed(seed)
-            eps = torch.randn(z.shape, device=device, dtype=z.dtype, generator=g)
+            g = torch.Generator(device=torch_dev).manual_seed(seed)
+            eps = torch.randn(z.shape, device=torch_dev, dtype=z.dtype, generator=g)
             z = (
                 math.sqrt(max(1 - latent_noise**2, 0.0)) * z
                 + latent_noise * eps * z.std()
@@ -633,11 +635,11 @@ def _get_img2img(model_id: str, device: str):
     import torch
     from diffusers import AutoPipelineForImage2Image
 
-    torch.backends.cudnn.enabled = False
+    torch_dev = "cpu" if str(device).startswith("tpu") else device
     pipe = AutoPipelineForImage2Image.from_pretrained(
-        model_id, torch_dtype=torch.float16, variant="fp16"
+        model_id, torch_dtype=torch.float32
     )
-    pipe.to(device)
+    pipe.to(torch_dev)
     pipe.set_progress_bar_config(disable=True)
     if hasattr(pipe, "safety_checker"):
         pipe.safety_checker = None
@@ -648,7 +650,7 @@ def _get_img2img(model_id: str, device: str):
 def img2img(
     image: Array,
     strength: float = 0.25,
-    device: str = "cuda:0",
+    device: str = "tpu",
     model_id: str = "stabilityai/sd-turbo",
     seed: int = 0,
     prompt: str = "high quality photograph",
@@ -657,6 +659,7 @@ def img2img(
     """Real diffusion regeneration through SD-Turbo."""
     import torch
 
+    torch_dev = "cpu" if str(device).startswith("tpu") else device
     src = to_float01(image)
     h, w = src.shape[:2]
     pipe = _get_img2img(model_id, device)
@@ -664,7 +667,7 @@ def img2img(
         (size, size), Image.Resampling.LANCZOS
     )
     steps = max(2, int(math.ceil(2.0 / max(strength, 1e-3))))
-    gen = torch.Generator(device=device).manual_seed(seed)
+    gen = torch.Generator(device=torch_dev).manual_seed(seed)
     res = pipe(
         prompt=prompt,
         image=pil,
@@ -690,7 +693,7 @@ def diffusion_purify(
     image: Array,
     rounds: int = 2,
     latent_noise: float = 0.25,
-    device: str = "cuda:0",
+    device: str = "tpu",
     seed: int = 0,
 ) -> AttackResult:
     """Iterated VAE regeneration, alternating two different autoencoders.
@@ -732,7 +735,7 @@ def pgd_on_decoder(
     message: np.ndarray,
     eps: float = 6 / 255,
     steps: int = 25,
-    device: str = "cuda:0",
+    device: str = "tpu",
     canon: int = 256,
 ) -> AttackResult:
     """White-box removal: gradient ascent on the real decoder's loss.
@@ -744,11 +747,12 @@ def pgd_on_decoder(
     import torch
     import torch.nn.functional as F
 
+    torch_dev = "cpu" if str(device).startswith("tpu") else device
     src = to_float01(image)
     h, w = src.shape[:2]
     work = np.stack([resize(src[..., c], (canon, canon)) for c in range(3)], -1)
-    x = torch.from_numpy(work).permute(2, 0, 1)[None].to(device).float()
-    m = torch.from_numpy(np.asarray(message, dtype=np.float32))[None].to(device)
+    x = torch.from_numpy(work).permute(2, 0, 1)[None].to(torch_dev).float()
+    m = torch.from_numpy(np.asarray(message, dtype=np.float32))[None].to(torch_dev)
     delta = torch.zeros_like(x, requires_grad=True)
     step = 2.5 * eps / steps
     for _ in range(steps):
@@ -775,17 +779,18 @@ def pgd_on_decoder(
 def surrogate_removal(
     image: Array,
     remover,
-    device: str = "cuda:0",
+    device: str = "tpu",
     canon: int = 256,
     budget: float = 0.06,
 ) -> AttackResult:
     """Black-box removal by a network trained to strip marks it has never seen."""
     import torch
 
+    torch_dev = "cpu" if str(device).startswith("tpu") else device
     src = to_float01(image)
     h, w = src.shape[:2]
     work = np.stack([resize(src[..., c], (canon, canon)) for c in range(3)], -1)
-    x = torch.from_numpy(work).permute(2, 0, 1)[None].to(device).float()
+    x = torch.from_numpy(work).permute(2, 0, 1)[None].to(torch_dev).float()
     with torch.no_grad():
         y = remover(x, budget=budget)
     rec = y[0].permute(1, 2, 0).cpu().numpy()

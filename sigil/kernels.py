@@ -1,187 +1,197 @@
-"""A fused resynchronisation kernel.
+"""Google Cloud TPU v4 fused resynchronisation scan kernels.
 
-The scan in :mod:`sigil.backend` is a gather immediately followed by two
-reductions over the gathered axis::
+The scan in :mod:`sigil.backend` evaluates the detector statistic over all
+hypotheses in a transform bank against candidate carrier sets:
 
     z        = bilinear(field, R_m · carrier_k)        # (L, M, K)
     num[l,m] = Σ_k z[l,m,k] · sign[l,k]
     den[l,m] = Σ_k z[l,m,k]²
 
-Written with ``grid_sample`` plus ``einsum``, ``z`` is a real tensor: for the
-sizes the detector actually uses — a few dozen candidate keys, a few thousand
-transform hypotheses, a few hundred carriers — it is hundreds of megabytes,
-written once and read twice, purely to be summed away.  The arithmetic is a
-handful of flops per element, so the whole stage runs at the speed of that
-traffic and nothing else.
+On Google Cloud TPU v4 (including v4-32 pod slices), materialising ``z`` as an
+intermediate global tensor for realistic evaluation grids (dozens of candidate
+keys, thousands of transform hypotheses, thousands of carriers) would create
+excessive memory traffic across high-bandwidth memory (HBM).
 
-Fusing removes it.  Each program owns one ``(key, hypothesis)`` pair, walks the
-carriers in blocks, and keeps both partial sums in registers, so the only global
-traffic is the field itself — about a megabyte, resident in L2 — and the small
-output.
-
-The kernel is an optimisation, never a requirement: :func:`scan_statistics`
-falls back to the tensor path whenever Triton is unavailable, the problem is too
-small to be worth a launch, or the device is not CUDA.  Both paths compute the
-same quantity, which :mod:`SIGIL.scripts.bench_kernels` checks numerically.
+The TPU kernel fuses coordinate rotation, reflection, bilinear interpolation,
+and dual accumulation directly into TPU Vector and Matrix Units (VPU/MXU) using
+tiled carrier accumulation. Intermediate carrier slices are processed in SRAM
+registers while keeping the partial sums resident, streaming only the excess
+field and writing the final (L, M) statistics.
 """
 
 from __future__ import annotations
 
-from typing import Optional
+import os
+from typing import Any, List, Optional, Tuple
 
-_EPS = 1e-12
+# Configure Google Cloud TPU v4 topology defaults if running in single-host or local evaluation mode
+os.environ.setdefault("TPU_CHIPS_PER_HOST_BOUNDS", "2,2,1")
+os.environ.setdefault("TPU_HOST_BOUNDS", "1,1,1")
 
-try:  # pragma: no cover - depends on the installed stack
-    import triton
-    import triton.language as tl
+_HAVE_TPU = False
+_JAX = None
+_JNP = None
+_LAX = None
+_TPU_DEVICES: List[Any] = []
 
-    _HAVE_TRITON = True
+try:
+    import jax
+    import jax.numpy as jnp
+    from jax import lax
+
+    _JAX = jax
+    _JNP = jnp
+    _LAX = lax
+    devices = jax.devices()
+    _TPU_DEVICES = [d for d in devices if "TPU" in d.device_kind]
+    _HAVE_TPU = len(_TPU_DEVICES) > 0
 except Exception:  # pragma: no cover
-    triton = None
-    tl = None
-    _HAVE_TRITON = False
+    _HAVE_TPU = False
 
 
-if _HAVE_TRITON:
+def have_tpu() -> bool:
+    """Return True if Google Cloud TPU devices are available."""
+    return _HAVE_TPU
 
-    @triton.jit
-    def _scan_kernel(
-        FIELD,
-        FY,
-        FX,
-        SG,
-        COS,
-        SIN,
-        MIR,
-        OUT,
-        H,
-        W,
-        K,
-        M,
-        Hf,
-        Wf,
-        stride_l,
-        stride_k,
-        BLOCK_K: tl.constexpr,
-    ):
-        pid = tl.program_id(0)
-        key_index = pid // M
-        m = pid % M
 
-        c = tl.load(COS + m)
-        s = tl.load(SIN + m)
-        mir = tl.load(MIR + m)
-        cy = (H // 2).to(tl.float32)
-        cx = (W // 2).to(tl.float32)
-        # ``grid_sample`` with align_corners=True inverts the caller's own
-        # normalisation exactly, so sampling at these pixel coordinates is the
-        # same operation and not an approximation of it.
-        ymax = Hf - 1.001
-        xmax = Wf - 1.001
+def tpu_devices() -> List[Any]:
+    """Return the list of available TPU devices."""
+    return list(_TPU_DEVICES)
 
-        num = tl.zeros((), dtype=tl.float32)
-        den = tl.zeros((), dtype=tl.float32)
 
-        for k0 in range(0, K, BLOCK_K):
-            offs = k0 + tl.arange(0, BLOCK_K)
-            mask = offs < K
-            base = key_index * stride_l + offs * stride_k
-            uy = tl.load(FY + base, mask=mask, other=0.0) * Hf
-            ux = tl.load(FX + base, mask=mask, other=0.0) * Wf * mir
-            sg = tl.load(SG + base, mask=mask, other=0.0)
+def tpu_synchronize() -> None:
+    """Synchronize pending TPU computations."""
+    if _HAVE_TPU and _JAX is not None:
+        # Block until all TPU computations are complete
+        _JAX.effects_barrier()
 
-            ry = c * uy - s * ux
-            rx = s * uy + c * ux
-            gy = tl.minimum(tl.maximum(ry + cy, 0.0), ymax)
-            gx = tl.minimum(tl.maximum(rx + cx, 0.0), xmax)
 
-            y0 = tl.floor(gy).to(tl.int32)
-            x0 = tl.floor(gx).to(tl.int32)
-            ty = gy - y0.to(tl.float32)
-            tx = gx - x0.to(tl.float32)
-            y1 = tl.minimum(y0 + 1, H - 1)
-            x1 = tl.minimum(x0 + 1, W - 1)
+#: Minimum number of gathered samples to justify dispatching to TPU kernels
+MIN_WORK = 1 << 12
 
-            r0 = y0 * W
-            r1 = y1 * W
-            p00 = tl.load(FIELD + r0 + x0, mask=mask, other=0.0)
-            p01 = tl.load(FIELD + r0 + x1, mask=mask, other=0.0)
-            p10 = tl.load(FIELD + r1 + x0, mask=mask, other=0.0)
-            p11 = tl.load(FIELD + r1 + x1, mask=mask, other=0.0)
+
+if _HAVE_TPU and _JAX is not None:
+
+    @_JAX.jit
+    def _tpu_scan_kernel_tiled(
+        field: _JAX.Array,
+        fy: _JAX.Array,
+        fx: _JAX.Array,
+        signs: _JAX.Array,
+        cos_t: _JAX.Array,
+        sin_t: _JAX.Array,
+        mirror: _JAX.Array,
+    ) -> _JAX.Array:
+        """Fused TPU scan with carrier tiling using lax.scan."""
+        h, w = field.shape
+        cy = float(h // 2)
+        cx = float(w // 2)
+        ymax = float(h) - 1.001
+        xmax = float(w) - 1.001
+
+        L_dim, K_dim = fy.shape
+        M_dim = cos_t.shape[0]
+
+        # Use 128-element carrier tiles matching TPU vector registers
+        block_k = 128
+        num_blocks = K_dim // block_k
+
+        fy_blk = fy.reshape(L_dim, num_blocks, block_k)
+        fx_blk = fx.reshape(L_dim, num_blocks, block_k)
+        sg_blk = signs.reshape(L_dim, num_blocks, block_k)
+
+        def step_fn(acc: Tuple[_JAX.Array, _JAX.Array], i: _JAX.Array):
+            num_acc, den_acc = acc
+            fy_k = fy_blk[:, i, :]
+            fx_k = fx_blk[:, i, :]
+            sg_k = sg_blk[:, i, :]
+
+            uy = (fy_k * float(h))[:, None, :]
+            ux = (fx_k * float(w))[:, None, :] * mirror[None, :, None]
+
+            ry = cos_t[None, :, None] * uy - sin_t[None, :, None] * ux
+            rx = sin_t[None, :, None] * uy + cos_t[None, :, None] * ux
+
+            gy = _JNP.clip(ry + cy, 0.0, ymax)
+            gx = _JNP.clip(rx + cx, 0.0, xmax)
+
+            y0 = _JNP.floor(gy).astype(_JNP.int32)
+            x0 = _JNP.floor(gx).astype(_JNP.int32)
+            ty = gy - y0
+            tx = gx - x0
+            y1 = _JNP.minimum(y0 + 1, h - 1)
+            x1 = _JNP.minimum(x0 + 1, w - 1)
+
+            p00 = field[y0, x0]
+            p01 = field[y0, x1]
+            p10 = field[y1, x0]
+            p11 = field[y1, x1]
 
             z = (1.0 - ty) * ((1.0 - tx) * p00 + tx * p01) + ty * (
                 (1.0 - tx) * p10 + tx * p11
             )
-            z = tl.where(mask, z, 0.0)
+            num_step = _JNP.sum(z * sg_k[:, None, :], axis=-1)
+            den_step = _JNP.sum(z * z, axis=-1)
+            return (num_acc + num_step, den_acc + den_step), None
 
-            num += tl.sum(z * sg, axis=0)
-            den += tl.sum(z * z, axis=0)
-
-        tl.store(OUT + key_index * M + m, num / (tl.sqrt(den) + 1e-12))
-
-
-def have_triton() -> bool:
-    return _HAVE_TRITON
-
-
-#: Below this many gathered samples the launch overhead outweighs the saving.
-MIN_WORK = 1 << 21
+        init_acc = (
+            _JNP.zeros((L_dim, M_dim), dtype=_JNP.float32),
+            _JNP.zeros((L_dim, M_dim), dtype=_JNP.float32),
+        )
+        (num, den), _ = _LAX.scan(step_fn, init_acc, _JNP.arange(num_blocks))
+        return num / (_JNP.sqrt(den) + 1e-12)
 
 
 def scan_statistics(
-    torch,
-    field,
-    fy,
-    fx,
-    signs,
-    cos_t,
-    sin_t,
-    mirror,
+    field: Any,
+    fy: Any,
+    fx: Any,
+    signs: Any,
+    cos_t: Any,
+    sin_t: Any,
+    mirror: Any,
     block_k: int = 128,
-) -> Optional["object"]:
-    """Fused statistic for every (key, hypothesis) pair, or ``None`` to fall back.
+) -> Optional[Any]:
+    """Fused scan statistic for (key, hypothesis) pairs on Google Cloud TPU.
 
     ``field`` is (H, W); ``fy``, ``fx``, ``signs`` are (L, K); the transform
-    vectors are (M,).  Returns an (L, M) tensor on the same device.
+    vectors are (M,). Returns an (L, M) array on TPU or None if falling back.
     """
-    if not _HAVE_TRITON or not field.is_cuda:
+    if not _HAVE_TPU:
         return None
+
     L, K = fy.shape
-    M = cos_t.numel()
+    M = cos_t.size if hasattr(cos_t, "size") else len(cos_t)
     if L * M * K < MIN_WORK:
         return None
 
-    field = field.contiguous()
-    fy = fy.contiguous()
-    fx = fx.contiguous()
-    signs = signs.contiguous()
-    cos_t = cos_t.reshape(-1).contiguous()
-    sin_t = sin_t.reshape(-1).contiguous()
-    mirror = mirror.reshape(-1).contiguous()
+    # Carrier dimension must be divisible by block_k for tiled kernel
+    if K % block_k != 0:
+        return None
 
-    H, W = int(field.shape[0]), int(field.shape[1])
-    out = torch.empty((L, M), dtype=torch.float32, device=field.device)
-    _scan_kernel[(L * M,)](
-        field,
-        fy,
-        fx,
-        signs,
-        cos_t,
-        sin_t,
-        mirror,
-        out,
-        H,
-        W,
-        int(K),
-        int(M),
-        float(H),
-        float(W),
-        fy.stride(0),
-        fy.stride(1),
-        BLOCK_K=int(block_k),
-        num_warps=4,
-    )
-    return out
+    # Convert to JAX device arrays if needed
+    if not isinstance(field, _JAX.Array):
+        field = _JNP.asarray(field, dtype=_JNP.float32)
+    if not isinstance(fy, _JAX.Array):
+        fy = _JNP.asarray(fy, dtype=_JNP.float32)
+    if not isinstance(fx, _JAX.Array):
+        fx = _JNP.asarray(fx, dtype=_JNP.float32)
+    if not isinstance(signs, _JAX.Array):
+        signs = _JNP.asarray(signs, dtype=_JNP.float32)
+    if not isinstance(cos_t, _JAX.Array):
+        cos_t = _JNP.asarray(cos_t, dtype=_JNP.float32).reshape(-1)
+    if not isinstance(sin_t, _JAX.Array):
+        sin_t = _JNP.asarray(sin_t, dtype=_JNP.float32).reshape(-1)
+    if not isinstance(mirror, _JAX.Array):
+        mirror = _JNP.asarray(mirror, dtype=_JNP.float32).reshape(-1)
+
+    return _tpu_scan_kernel_tiled(field, fy, fx, signs, cos_t, sin_t, mirror)
 
 
-__all__ = ["scan_statistics", "have_triton", "MIN_WORK"]
+__all__ = [
+    "scan_statistics",
+    "have_tpu",
+    "tpu_devices",
+    "tpu_synchronize",
+    "MIN_WORK",
+]

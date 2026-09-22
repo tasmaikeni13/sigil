@@ -18,8 +18,8 @@ Losses
              decoder, so robustness is measured against an opponent that
              searches rather than a fixed attack menu.
 
-Multi-GPU via torchrun:
-    torchrun --nproc_per_node=2 scripts/train_latent.py --steps 40000
+Training:
+    python scripts/train_latent.py --steps 40000
 """
 
 from __future__ import annotations
@@ -157,9 +157,8 @@ def main():
     local_rank = int(os.environ.get("LOCAL_RANK", 0))
     world = int(os.environ.get("WORLD_SIZE", 1))
     if world > 1:
-        dist.init_process_group("nccl")
-        torch.cuda.set_device(local_rank)
-    device = f"cuda:{local_rank}" if torch.cuda.is_available() else "cpu"
+        dist.init_process_group("gloo")
+    device = "cpu"
     torch.manual_seed(args.seed + local_rank)
     np.random.seed(args.seed + local_rank)
 

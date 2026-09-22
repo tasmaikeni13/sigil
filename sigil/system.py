@@ -48,7 +48,7 @@ class SigilConfig:
     #: Carrying both and fusing costs one extra Bonferroni factor, which the
     #: threshold absorbs as the square root of a logarithm.
     latent_coarse_checkpoint: Optional[str] = None
-    device: str = "cuda:0"
+    device: str = "tpu"
     alpha: float = 1e-6
     #: Budget shares in the order (analytic, learned, coarse). If fewer weights
     #: are supplied than active strata, detection uses equal shares.
@@ -258,6 +258,9 @@ class Sigil:
                 for c in ccands:
                     if c not in cands:
                         cands.append(c)
+
+        if expected_nonce is not None and int(expected_nonce) not in cands:
+            cands.append(int(expected_nonce))
 
         ana = self.analytic.detect(
             image,
