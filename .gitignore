@@ -10,3 +10,8 @@ data/
 checkpoints/*.pt
 lean/.lake/
 *.log
+paper/*.aux
+paper/*.out
+paper/*.toc
+paper/*.fls
+paper/*.fdb_latexmk
