@@ -86,6 +86,11 @@ run_all.sh                  Full end-to-end reproduction pipeline
 ### Hardware Dispatch
 - TPU hardware is automatically used when available via JAX/XLA (`libtpu`).
 - On machines without TPU (standard CPU/GPU hosts), `sigil.backend.Scanner` seamlessly falls back to optimized NumPy routines.
+- **TPU Pod Slice Topology**: When operating on a single host of a Google Cloud TPU v4-32 slice, always ensure the following bounds are exported to prevent JAX distributed initialization hangs:
+  ```bash
+  export TPU_CHIPS_PER_HOST_BOUNDS="2,2,1"
+  export TPU_HOST_BOUNDS="1,1,1"
+  ```
 
 ---
 
@@ -115,6 +120,34 @@ Run CPU-compatible unit and smoke tests:
 ./.venv/bin/pytest tests/test_backend.py -k "not tpu"
 ```
 *Note on TPU tests*: `tests/test_tpu_kernels.py` and `test_tpu_available_flag` in `tests/test_backend.py` strictly require a Google Cloud TPU v4 VM environment with attached TPU devices.
+
+### Tier 2b: Script Smoke Tests (Fast Pipeline Verification)
+Verify execution scripts across the pipeline without long-running compute:
+```bash
+# Ingestion smoke test (>=64 validated images):
+./.venv/bin/python scripts/build_corpus.py --target-dir data/corpus --smoke-test
+
+# Geometric rotation and crop sweep on TPU:
+TPU_CHIPS_PER_HOST_BOUNDS="2,2,1" TPU_HOST_BOUNDS="1,1,1" ./.venv/bin/python scripts/geometry_frontier.py --tpu --trials 2
+
+# Fused TPU scan kernel benchmark vs float64 reference:
+TPU_CHIPS_PER_HOST_BOUNDS="2,2,1" TPU_HOST_BOUNDS="1,1,1" ./.venv/bin/python scripts/bench_kernels.py --tpu --tile-k 128
+
+# Multi-system competitive arena smoke test (SIGIL vs SynthID):
+TPU_CHIPS_PER_HOST_BOUNDS="2,2,1" TPU_HOST_BOUNDS="1,1,1" ./.venv/bin/python scripts/arena.py --smoke-test
+
+# Neural stratum training loop smoke test:
+./.venv/bin/python scripts/train_latent.py --smoke-test
+
+# Operating point strength calibration smoke test:
+TPU_CHIPS_PER_HOST_BOUNDS="2,2,1" TPU_HOST_BOUNDS="1,1,1" ./.venv/bin/python scripts/calibrate_strength.py --tpu --smoke-test
+
+# Checkpoint model selection smoke test:
+TPU_CHIPS_PER_HOST_BOUNDS="2,2,1" TPU_HOST_BOUNDS="1,1,1" ./.venv/bin/python scripts/select_checkpoint.py --smoke-test
+
+# Large-sample null audit smoke test:
+TPU_CHIPS_PER_HOST_BOUNDS="2,2,1" TPU_HOST_BOUNDS="1,1,1" ./.venv/bin/python scripts/fpr_study.py --tpu --smoke-test
+```
 
 ### Tier 3: Mathematical Formalization (Lean 4)
 When editing theoretical statements, proof dependencies, or statistical formulations:
@@ -173,7 +206,7 @@ Regenerate tables, figures, and compile the manuscript:
 ### ASK FIRST:
 - Modifying foundational theorems (Theorems T1–T9) or alter the default operating point $\alpha = 10^{-6}$.
 - Introducing new external heavyweight dependencies into `pyproject.toml`.
-- Initiating long-running training loops (`scripts/train_latent.py`) or full arena evaluations (`scripts/arena.py`) without prior agreement on computational budget.
+- Initiating full production training loops (`scripts/train_latent.py`) or full arena evaluations (`scripts/arena.py`) without prior agreement on computational budget. (Note: `--smoke-test` runs are fast and encouraged for continuous verification).
 
 ### NEVER:
 - **NEVER** commit private image corpora (`data/corpus/`), raw image downloads, or synthetic datasets.

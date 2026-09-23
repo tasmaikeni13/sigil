@@ -12,6 +12,11 @@ STEPS="${STEPS:-12000}"
 WORKERS="${WORKERS:-4}"
 PHOTO_SOURCE="${PHOTO_SOURCE:-}"
 
+SMOKE_TEST="${SMOKE_TEST:-0}"
+if [ "${1:-}" = "--smoke-test" ]; then
+  SMOKE_TEST="1"
+fi
+
 # Configure Google Cloud TPU v4 environment defaults
 export TPU_CHIPS_PER_HOST_BOUNDS="${TPU_CHIPS_PER_HOST_BOUNDS:-2,2,1}"
 export TPU_HOST_BOUNDS="${TPU_HOST_BOUNDS:-1,1,1}"
@@ -19,8 +24,12 @@ export TPU_HOST_BOUNDS="${TPU_HOST_BOUNDS:-1,1,1}"
 say() { printf '\n\033[1m== %s\033[0m\n' "$*"; }
 
 say "1/8  corpora"
-[ -d data/corpus/natural ] || $PY scripts/build_corpus.py \
-    --n-natural 100 --n-synthetic 240
+if [ "$SMOKE_TEST" = "1" ]; then
+  [ -d data/corpus/natural ] || $PY scripts/build_corpus.py --target-dir data/corpus --smoke-test
+else
+  [ -d data/corpus/natural ] || $PY scripts/build_corpus.py --n-natural 100 --n-synthetic 240
+fi
+
 # The photographic corpus is downscaled from the supplied image set.
 if [ ! -d data/corpus/photo ]; then
   if [ -z "$PHOTO_SOURCE" ]; then
@@ -57,37 +66,60 @@ PY
 fi
 
 say "2/8  anchor calibration  ->  results/descriptor_calibration.json"
-$PY scripts/calibrate_descriptor.py --n-diversity 80 --n-stability 12
+if [ "$SMOKE_TEST" = "1" ]; then
+  $PY scripts/calibrate_descriptor.py --smoke-test
+else
+  $PY scripts/calibrate_descriptor.py --n-diversity 80 --n-stability 12
+fi
 
 say "3/8  train the learned stratum  ->  checkpoints/latent.pt"
 if [ ! -f checkpoints/latent.pt ]; then
-  $PY scripts/train_latent.py \
-      --steps "$STEPS" --batch 8 --workers "$WORKERS" --n-bits 1024 \
-      --vae-from 600 --adversarial-from 9000 --severity-steps 3500 --turbo \
-      --target-psnr 37.0 --out checkpoints \
-      --data data/div2k/DIV2K_train_HR data/corpus/photo data/corpus/synthetic
+  if [ "$SMOKE_TEST" = "1" ]; then
+    $PY scripts/train_latent.py --smoke-test
+  else
+    $PY scripts/train_latent.py \
+        --steps "$STEPS" --batch 8 --workers "$WORKERS" --n-bits 1024 \
+        --vae-from 600 --adversarial-from 9000 --severity-steps 3500 --turbo \
+        --target-psnr 37.0 --out checkpoints \
+        --data data/div2k/DIV2K_train_HR data/corpus/photo data/corpus/synthetic
+  fi
 fi
 
 say "4/8  numerical verification of every analytic claim  ->  results/theory_checks.json"
-$PY scripts/theory_checks.py --limit 40
+$PY scripts/theory_checks.py --limit "$([ "$SMOKE_TEST" = "1" ] && echo 10 || echo 40)"
 
 say "5a/8  the full attack benchmark  ->  results/benchmark.csv"
-$PY -u scripts/benchmark.py --limit "$LIMIT"
+if [ "$SMOKE_TEST" = "1" ]; then
+  $PY -u scripts/benchmark.py --smoke-test
+else
+  $PY -u scripts/benchmark.py --limit "$LIMIT"
+fi
 
 say "5b/8  the arena: SIGIL vs SynthID-style vs Stable-Signature-style,"
 say "      including the reverse-SynthID removal suite, sharded across TPU workers"
-$PY -u scripts/arena.py --limit "$LIMIT" --workers "$WORKERS"
+if [ "$SMOKE_TEST" = "1" ]; then
+  $PY -u scripts/arena.py --smoke-test
+else
+  $PY -u scripts/arena.py --limit "$LIMIT" --workers "$WORKERS"
+fi
 
 say "5c/8  larger-sample false-positive margin  ->  results/fpr_study.json"
-$PY -u scripts/fpr_study.py --limit 150
+if [ "$SMOKE_TEST" = "1" ]; then
+  $PY -u scripts/fpr_study.py --smoke-test
+else
+  $PY -u scripts/fpr_study.py --limit 150
+fi
 
 say "6/8  figures and tables"
 $PY scripts/figures.py
 $PY scripts/make_tables.py
 
 say "7/8  machine-checked proofs, then the manuscript"
-( cd lean && ELAN_HOME="$PWD/../.elan" PATH="$PWD/../.elan/bin:$PATH" \
-    lake build Sigil )
-( cd paper && latexmk -pdf -f -interaction=nonstopmode sigil.tex )
+( cd lean && PATH="${ELAN_HOME:-$HOME/.elan}/bin:$PATH" lake build Sigil )
+if command -v latexmk >/dev/null 2>&1; then
+  ( cd paper && latexmk -pdf -f -interaction=nonstopmode sigil.tex )
+else
+  ( cd paper && pdflatex -interaction=nonstopmode sigil.tex )
+fi
 
 say "done - paper/sigil.pdf"

@@ -112,10 +112,29 @@ def main():
     ap.add_argument("--max-size", type=int, default=768)
     ap.add_argument("--list-size", type=int, default=64)
     ap.add_argument("--out", default="results/descriptor_calibration.json")
+    ap.add_argument(
+        "--smoke-test",
+        action="store_true",
+        help="Fast run on a minimal subset of images",
+    )
     args = ap.parse_args()
 
     cfg = InvariantConfig()
     paths = list_images(args.image_dir)
+    if not paths:
+        for fallback in ("data/corpus/natural", "data/corpus/synthetic"):
+            paths = list_images(fallback)
+            if paths:
+                break
+    if not paths:
+        raise RuntimeError(
+            "No calibration images found in specified image-dir or fallback corpus dirs."
+        )
+
+    if args.smoke_test:
+        args.n_diversity = min(args.n_diversity, 4)
+        args.n_stability = min(args.n_stability, 2)
+
     report = {}
 
     for fam, fn in FAMILIES.items():

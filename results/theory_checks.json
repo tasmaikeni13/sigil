@@ -3,7 +3,7 @@
     "canon": 512,
     "n_carriers": 4096,
     "alpha_nats": 0.46,
-    "n_images": 80
+    "n_images": 20
   },
   "T1_translation_invariance": {
     "n": 12,
@@ -99,7 +99,7 @@
   "T5_multiplicity": {
     "n_images": 12,
     "max_null_statistic": 4.900923252105713,
-    "mean_null_statistic": 3.875454227129618,
+    "mean_null_statistic": 3.6969855030377707,
     "median_hypotheses_per_anchor_family": 811200,
     "expected_max_sqrt2logN": 5.21656398634562,
     "threshold_at_alpha_1e-6": 7.4056438571920715,
@@ -107,11 +107,11 @@
     "false_positives_at_1e-6": 0
   },
   "T6_codebook_collapse": {
-    "n_refs": 24,
+    "n_refs": 20,
     "content_derived": {
-      "precision_at_k": 0.07794871794871795,
+      "precision_at_k": 0.08461538461538462,
       "chance_precision": 0.00743865966796875,
-      "lift_over_chance": 10.478866009204472,
+      "lift_over_chance": 11.375084812623275,
       "k": 1950
     },
     "static_carrier_control": {
@@ -128,18 +128,18 @@
       "note": "uniform per-image nonce; independent of content"
     },
     "spectral": {
-      "diversity": 0.8,
-      "n_images": 80,
-      "collisions": 16,
-      "birthday_entropy_bits_lower_bound": 7.643856189774724,
+      "diversity": 1.0,
+      "n_images": 20,
+      "collisions": 0,
+      "birthday_entropy_bits_lower_bound": null,
       "delta": 0.7,
       "list_size": 64
     },
     "histogram": {
-      "diversity": 0.8,
-      "n_images": 80,
-      "collisions": 16,
-      "birthday_entropy_bits_lower_bound": 7.643856189774724,
+      "diversity": 1.0,
+      "n_images": 20,
+      "collisions": 0,
+      "birthday_entropy_bits_lower_bound": null,
       "delta": 0.7,
       "list_size": 64
     }
@@ -205,6 +205,12 @@
     "note": "empirical <= alpha for every dependence structure"
   },
   "T9_nonce_null": {
-    "skipped": "no learned checkpoint"
+    "n_trials": 64,
+    "nonce_space": 1048576,
+    "max_statistic": 5.436367511749268,
+    "mean_max": 4.806391313672066,
+    "expected_max_sqrt2logN": 5.265537695468319,
+    "threshold_at_alpha_1e-6": 7.440222331242956,
+    "false_positives": 0
   }
 }

@@ -7,23 +7,23 @@
   },
   "systems": {
     "sigil": {
-      "embed_psnr": 40.57540595024964,
-      "embed_ssim": 0.9799861311912537,
+      "embed_psnr": 30.677017999634376,
+      "embed_ssim": 0.922950267791748,
       "conditions": {
         "clean": {
           "n": 1,
           "rate": 1.0,
           "family": "none",
           "admissible": 1.0,
-          "median_log10p": -45.80526256266471,
+          "median_log10p": -48.01125710437381,
           "attack_psnr": null
         },
         "crop_0.75": {
           "n": 1,
-          "rate": 0.0,
+          "rate": 1.0,
           "family": "geometric",
           "admissible": 1.0,
-          "median_log10p": -4.160641106434759,
+          "median_log10p": -7.281998299559793,
           "attack_psnr": null
         },
         "jpeg_q50": {
@@ -31,8 +31,8 @@
           "rate": 1.0,
           "family": "valuemetric",
           "admissible": 1.0,
-          "median_log10p": -40.72902118246982,
-          "attack_psnr": 29.807319831595322
+          "median_log10p": -38.42849576388653,
+          "attack_psnr": 29.513771643029557
         },
         "rotate_5": {
           "n": 1,
@@ -60,7 +60,7 @@
         }
       },
       "admissible_attacks": 3,
-      "mean_tpr_admissible": 0.3333333333333333,
+      "mean_tpr_admissible": 0.6666666666666666,
       "worst_tpr_admissible": 0.0,
       "fpr_unmarked": 0.0,
       "fpr_wrong_key": 0.0

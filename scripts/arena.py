@@ -261,6 +261,12 @@ def _init(
         sig.coarse.cfg = type(sig.coarse.cfg)(
             **{**sig.coarse.cfg.__dict__, "strength": float(coarse_strength)}
         )
+    if smoke_test and sig.latent is not None:
+        from sigil.learned import GeoHypothesis
+
+        sig.latent.hypotheses = (GeoHypothesis("identity"),)
+        sig.latent.refine_deg = 0.0
+
     _STATE["sigil"] = sig
     _STATE["synthid"] = SynthIDStyle(alpha=alpha)
     # Match the baseline on total residual energy, not on the amplitude of one

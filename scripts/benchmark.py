@@ -264,7 +264,21 @@ def main():
     ap.add_argument("--no-heavy", action="store_true", help="skip generative attacks")
     ap.add_argument("--codebook-refs", type=int, default=24)
     ap.add_argument("--seed", type=int, default=20260727)
+    ap.add_argument(
+        "--smoke-test",
+        action="store_true",
+        help="Fast run with 2 images and minimal attacks",
+    )
     args = ap.parse_args()
+
+    if args.smoke_test:
+        args.limit = min(args.limit, 2)
+        args.codebook_refs = min(args.codebook_refs, 2)
+        args.no_heavy = True
+        if args.out == "results/benchmark.csv":
+            args.out = "results/benchmark_smoke.csv"
+        if args.summary == "results/summary.json":
+            args.summary = "results/summary_smoke.json"
 
     heavy = not args.no_heavy
     cfg = SigilConfig(
@@ -274,6 +288,12 @@ def main():
         alpha=args.alpha,
     )
     sigil = Sigil(cfg)
+    if args.smoke_test and sigil.latent is not None:
+        from sigil.learned import GeoHypothesis
+
+        sigil.latent.hypotheses = (GeoHypothesis("identity"),)
+        sigil.latent.refine_deg = 0.0
+
     print(
         f"strata: {sigil.strata}"
         + (
@@ -342,6 +362,18 @@ def main():
         )
     )
     catalogue += composite_catalogue(args.device, heavy)
+
+    if args.smoke_test:
+        catalogue = [
+            ("jpeg_q75", "valuemetric", partial(atk.jpeg, quality=75)),
+            ("rotate_5", "geometric", partial(atk.rotate, degrees=5.0)),
+            ("crop_0.9", "geometric", partial(atk.centre_crop, frac=0.90)),
+            (
+                "codebook_sub_r1",
+                "codebook",
+                partial(atk.codebook_subtract, codebook=codebook, removal=1.0),
+            ),
+        ]
 
     # A perceptual number alongside the pixel ones.  The learned residual is
     # normalised to a fixed RMS by construction, so PSNR is essentially a design
