@@ -230,6 +230,7 @@ def _init(
     analytic_alpha: Optional[float] = None,
     coarse_checkpoint: Optional[str] = None,
     coarse_strength: Optional[float] = None,
+    smoke_test: bool = False,
 ):
     import torch
 
@@ -291,6 +292,12 @@ def _init(
     _STATE["device"] = device
     _STATE["alpha"] = alpha
     _STATE["catalogue"] = core_catalogue(device, heavy)
+    if smoke_test:
+        _STATE["catalogue"] = [
+            c
+            for c in _STATE["catalogue"]
+            if c[0] in ("jpeg_q50", "rotate_5", "crop_0.75")
+        ]
 
     # Codebook and collusion attacks are the ones that should separate a
     # per-image nonce from a fixed key, so each system faces a codebook built
@@ -526,12 +533,40 @@ def main():
         "carries the rotations the fine grid gives up",
     )
     ap.add_argument("--coarse-strength", type=float, default=None)
+    ap.add_argument("--smoke-test", action="store_true")
+    ap.add_argument("--corpus-dir", default=None)
+    ap.add_argument("--results-dir", default=None)
     ap.add_argument("--seed", type=int, default=20260731)
     args = ap.parse_args()
+
+    if args.corpus_dir:
+        args.corpus = [args.corpus_dir]
+    if args.results_dir:
+        res_dir = Path(args.results_dir)
+        res_dir.mkdir(parents=True, exist_ok=True)
+        args.out = str(res_dir / "arena.csv")
+        args.summary = str(res_dir / "arena_summary.json")
+    if args.smoke_test:
+        args.limit = 1
+        args.workers = 1
+        args.codebook_refs = 0
+        args.no_heavy = True
+        args.systems = [s for s in ["sigil", "synthid"] if s in args.systems] or [
+            "sigil"
+        ]
 
     paths: List[str] = []
     for root in args.corpus:
         paths.extend(str(p) for p in list_images(root)[: args.limit])
+    if not paths:
+        for candidate in [
+            "data/corpus/natural",
+            "data/corpus",
+            "results/cache/codebook/hosts",
+        ]:
+            if Path(candidate).exists() and list_images(candidate):
+                paths.extend(str(p) for p in list_images(candidate)[: args.limit])
+                break
     if not paths:
         raise SystemExit("empty corpus")
     print(f"{len(paths)} images x {len(args.systems)} systems", flush=True)
@@ -603,6 +638,7 @@ def main():
             args.analytic_alpha,
             args.coarse_checkpoint,
             args.coarse_strength,
+            smoke_test=args.smoke_test,
         )
         for i, j in enumerate(jobs):
             rows.extend(_worker(j))
@@ -628,6 +664,7 @@ def main():
                         args.analytic_alpha,
                         args.coarse_checkpoint,
                         args.coarse_strength,
+                        args.smoke_test,
                     ),
                 )
             )

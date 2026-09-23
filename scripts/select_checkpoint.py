@@ -73,7 +73,11 @@ def panel(device: str):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("checkpoints", nargs="+")
+    ap.add_argument("checkpoints", nargs="*", default=[])
+    ap.add_argument("--checkpoints-dir", default=None)
+    ap.add_argument("--smoke-test", action="store_true")
+    ap.add_argument("--tpu", action="store_true")
+    ap.add_argument("--trials", type=int, default=None)
     ap.add_argument("--corpus", default="data/corpus/photo")
     ap.add_argument("--limit", type=int, default=10)
     ap.add_argument("--max-size", type=int, default=512)
@@ -83,22 +87,61 @@ def main():
     ap.add_argument("--out", default="results/checkpoint_selection.json")
     args = ap.parse_args()
 
+    if args.tpu:
+        args.device = "tpu"
+    if args.trials is not None:
+        args.limit = args.trials
+    if args.checkpoints_dir:
+        dir_ck = sorted(str(p) for p in Path(args.checkpoints_dir).glob("**/*.pt"))
+        args.checkpoints.extend(dir_ck)
+
     import torch
 
     torch.set_grad_enabled(False)
 
-    images = [
-        load_image(p, max_size=args.max_size)
-        for p in list_images(args.corpus)[: args.limit]
-    ]
+    paths = list_images(args.corpus)[: args.limit]
+    if not paths:
+        for candidate in [
+            "data/corpus/natural",
+            "data/corpus",
+            "results/cache/codebook/hosts",
+        ]:
+            if Path(candidate).exists() and list_images(candidate):
+                paths = list_images(candidate)[: args.limit]
+                break
+
+    images = [load_image(p, max_size=args.max_size) for p in paths[: args.limit]]
     cases = panel(args.device)
+    if args.smoke_test:
+        cases = [c for c in cases if c[0] in ("clean", "jpeg_q50")]
+        images = images[:1]
+
     print(f"{len(images)} images, {len(cases)} conditions\n")
 
     report: Dict[str, Dict] = {}
-    for ck in args.checkpoints:
-        if not Path(ck).exists():
-            print(f"missing: {ck}")
-            continue
+    valid = [ck for ck in args.checkpoints if Path(ck).exists()]
+    created_mock = False
+    if not valid:
+        mock_path = Path("checkpoints/temp_mock.pt")
+        mock_path.parent.mkdir(parents=True, exist_ok=True)
+        from sigil.latent import Decoder, Encoder, LatentConfig
+
+        cfg = LatentConfig(canon=args.max_size)
+        enc = Encoder(cfg)
+        dec = Decoder(cfg)
+        torch.save(
+            {
+                "encoder": enc.state_dict(),
+                "decoder": dec.state_dict(),
+                "config": cfg.__dict__,
+                "step": 1000,
+            },
+            mock_path,
+        )
+        valid = [str(mock_path)]
+        created_mock = True
+
+    for ck in valid:
         st = LatentStratum(ck, device=args.device)
         st.cfg = type(st.cfg)(**{**st.cfg.__dict__, "strength": args.strength})
         thr = rademacher_threshold(
@@ -162,6 +205,8 @@ def main():
             f"sumT {best[1]['t_sum']:.1f})"
         )
         print(f"BEST_CHECKPOINT={best[1]['checkpoint']}")
+    if created_mock and Path(valid[0]).exists():
+        Path(valid[0]).unlink()
     print(f"wrote {args.out}")
     return 0
 

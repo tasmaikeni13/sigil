@@ -110,6 +110,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--canon", type=int, default=512)
     ap.add_argument("--device", default="tpu")
+    ap.add_argument("--tpu", action="store_true", help="use TPU device")
+    ap.add_argument("--tile-k", type=int, default=128, help="carrier tile size")
     ap.add_argument(
         "--tol",
         type=float,
@@ -118,6 +120,9 @@ def main():
     )
     ap.add_argument("--iters", type=int, default=2)
     args = ap.parse_args()
+
+    if args.tpu:
+        args.device = "tpu"
 
     if not K.have_tpu() and args.device == "tpu":
         print("TPU unavailable on this host, nothing to check")

@@ -66,6 +66,15 @@ class PatchDataset(Dataset):
             if p.exists():
                 self.paths.extend(list_images(p))
         if not self.paths:
+            for candidate in [
+                "data/corpus/natural",
+                "data/corpus",
+                "results/cache/codebook/hosts",
+            ]:
+                if Path(candidate).exists() and list_images(candidate):
+                    self.paths.extend(list_images(candidate))
+                    break
+        if not self.paths:
             raise SystemExit(f"no images under {roots}")
         self.size = size
         self.length = length
@@ -152,7 +161,17 @@ def main():
         default=6,
         help="how many periodic checkpoints to retain",
     )
+    ap.add_argument("--smoke-test", action="store_true")
     args = ap.parse_args()
+
+    if args.smoke_test:
+        args.steps = 1
+        args.batch = 2
+        args.workers = 0
+        args.warmup = 1
+        args.save_every = 1
+        args.adversarial_from = 1000
+        args.vae_from = 1000
 
     local_rank = int(os.environ.get("LOCAL_RANK", 0))
     world = int(os.environ.get("WORLD_SIZE", 1))

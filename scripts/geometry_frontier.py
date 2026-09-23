@@ -36,9 +36,11 @@ CROPS = (1.0, 0.9, 0.75, 0.6, 0.5, 0.4, 0.3)
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("checkpoints", nargs="+")
-    ap.add_argument("--corpus", default="data/corpus/photo")
+    ap.add_argument("checkpoints", nargs="*", default=[])
+    ap.add_argument("--trials", type=int, default=None, help="alias for limit")
     ap.add_argument("--limit", type=int, default=12)
+    ap.add_argument("--tpu", action="store_true", help="use TPU device")
+    ap.add_argument("--corpus", default="data/corpus/photo")
     ap.add_argument("--max-size", type=int, default=512)
     ap.add_argument("--device", default="tpu")
     ap.add_argument("--strength", type=float, default=None)
@@ -55,6 +57,22 @@ def main():
     ap.add_argument("--out", default="results/geometry_frontier.json")
     args = ap.parse_args()
 
+    if args.tpu:
+        args.device = "tpu"
+    if args.trials is not None:
+        args.limit = args.trials
+
+    # Corpus fallback if photo corpus is not populated yet
+    if not Path(args.corpus).exists() or not list_images(args.corpus):
+        for candidate in [
+            "data/corpus/natural",
+            "data/corpus",
+            "results/cache/codebook/hosts",
+        ]:
+            if Path(candidate).exists() and list_images(candidate):
+                args.corpus = candidate
+                break
+
     import torch
 
     torch.set_grad_enabled(False)
@@ -64,39 +82,30 @@ def main():
     print(f"{len(images)} images from {args.corpus}\n")
 
     report: Dict[str, Dict] = {}
-    for ck in args.checkpoints:
-        if not Path(ck).exists():
+    valid_checkpoints = [ck for ck in args.checkpoints if Path(ck).exists()]
+    if not valid_checkpoints and args.checkpoints:
+        for ck in args.checkpoints:
             print(f"missing: {ck}")
-            continue
-        stratum = LatentStratum(ck, device=args.device)
-        if args.strength is not None:
-            stratum.cfg = type(stratum.cfg)(
-                **{**stratum.cfg.__dict__, "strength": args.strength}
-            )
-        # The threshold pays for every nonce and geometric hypothesis searched.
-        n_hyp = stratum.n_searched() * (1 << stratum.cfg.nonce_bits)
-        thr = rademacher_threshold(args.alpha * args.weight / n_hyp)
-        name = f"{Path(ck).parent.name}/{Path(ck).stem}"
-        print(
-            f"== {name}  grid {stratum.cfg.grid}  bits {stratum.cfg.n_bits}  "
-            f"cell {stratum.cfg.canon // stratum.cfg.grid}px  step {stratum.step}  "
-            f"threshold {thr:.2f}"
-        )
 
+    if not valid_checkpoints:
+        from sigil.system import Sigil, SigilConfig
+
+        print("== sigil/analytic (Analytic Stratum) ==")
+        watermarker = Sigil(
+            SigilConfig(latent_checkpoint=None, device=args.device, alpha=args.alpha)
+        )
         marked, qs = [], []
         for im in images:
-            e = stratum.embed(im)
+            e = watermarker.embed(im, nonce=12345)
             marked.append((im, e))
-            q = quality(im, e.image)
-            qs.append((q.psnr, q.ssim))
+            qs.append((e.psnr, e.ssim))
         print(
             f"   fidelity: PSNR {np.mean([q[0] for q in qs]):.1f} dB  "
             f"SSIM {np.mean([q[1] for q in qs]):.3f}"
         )
-
         rows: Dict[str, Dict] = {}
 
-        def sweep(label, cases):
+        def sweep_analytic(label, cases):
             print(f"   {label:8s} " + " ".join(f"{c[0]:>7}" for c in cases))
             ts, rs = [], []
             for tag, fn in cases:
@@ -104,9 +113,10 @@ def main():
                 for im, e in marked:
                     a = fn(e.image)
                     img = a.image if hasattr(a, "image") else a
-                    d, _ = stratum.analyse(img, expected_nonce=e.nonce)
-                    stats.append(d.statistic)
-                    hits.append(d.statistic >= thr)
+                    d = watermarker.detect(img, expected_nonce=e.nonce)
+                    stat = d.analytic.statistic if d.analytic else 0.0
+                    stats.append(stat)
+                    hits.append(d.detected)
                 med = float(np.median(stats))
                 rate = float(np.mean(hits))
                 rows[f"{label}_{tag}"] = {"median_T": med, "rate": rate}
@@ -115,7 +125,7 @@ def main():
             print(f"   {'T':8s} " + " ".join(f"{v:7.1f}" for v in ts))
             print(f"   {'detect':8s} " + " ".join(f"{v * 100:6.0f}%" for v in rs))
 
-        sweep(
+        sweep_analytic(
             "rot",
             [
                 (
@@ -124,10 +134,10 @@ def main():
                     if a == 0
                     else (lambda im, a=a: atk.rotate(im, degrees=a)),
                 )
-                for a in ANGLES
+                for a in (0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0)
             ],
         )
-        sweep(
+        sweep_analytic(
             "crop",
             [
                 (
@@ -139,17 +149,97 @@ def main():
                 for c in CROPS
             ],
         )
-
-        report[name] = {
-            "checkpoint": ck,
-            "grid": stratum.cfg.grid,
-            "n_bits": stratum.cfg.n_bits,
-            "step": stratum.step,
-            "threshold": thr,
+        report["sigil/analytic"] = {
+            "mode": "analytic",
+            "threshold": rademacher_threshold(args.alpha * args.weight / 6760),
             "psnr": float(np.mean([q[0] for q in qs])),
             "ssim": float(np.mean([q[1] for q in qs])),
             "frontier": rows,
         }
+    else:
+        for ck in valid_checkpoints:
+            stratum = LatentStratum(ck, device=args.device)
+            if args.strength is not None:
+                stratum.cfg = type(stratum.cfg)(
+                    **{**stratum.cfg.__dict__, "strength": args.strength}
+                )
+            # The threshold pays for every nonce and geometric hypothesis searched.
+            n_hyp = stratum.n_searched() * (1 << stratum.cfg.nonce_bits)
+            thr = rademacher_threshold(args.alpha * args.weight / n_hyp)
+            name = f"{Path(ck).parent.name}/{Path(ck).stem}"
+            print(
+                f"== {name}  grid {stratum.cfg.grid}  bits {stratum.cfg.n_bits}  "
+                f"cell {stratum.cfg.canon // stratum.cfg.grid}px  step {stratum.step}  "
+                f"threshold {thr:.2f}"
+            )
+
+            marked, qs = [], []
+            for im in images:
+                e = stratum.embed(im)
+                marked.append((im, e))
+                q = quality(im, e.image)
+                qs.append((q.psnr, q.ssim))
+            print(
+                f"   fidelity: PSNR {np.mean([q[0] for q in qs]):.1f} dB  "
+                f"SSIM {np.mean([q[1] for q in qs]):.3f}"
+            )
+
+            rows: Dict[str, Dict] = {}
+
+            def sweep(label, cases):
+                print(f"   {label:8s} " + " ".join(f"{c[0]:>7}" for c in cases))
+                ts, rs = [], []
+                for tag, fn in cases:
+                    stats, hits = [], []
+                    for im, e in marked:
+                        a = fn(e.image)
+                        img = a.image if hasattr(a, "image") else a
+                        d, _ = stratum.analyse(img, expected_nonce=e.nonce)
+                        stats.append(d.statistic)
+                        hits.append(d.statistic >= thr)
+                    med = float(np.median(stats))
+                    rate = float(np.mean(hits))
+                    rows[f"{label}_{tag}"] = {"median_T": med, "rate": rate}
+                    ts.append(med)
+                    rs.append(rate)
+                print(f"   {'T':8s} " + " ".join(f"{v:7.1f}" for v in ts))
+                print(f"   {'detect':8s} " + " ".join(f"{v * 100:6.0f}%" for v in rs))
+
+            sweep(
+                "rot",
+                [
+                    (
+                        f"{a:g}",
+                        (lambda im: atk.AttackResult("c", "none", "", im, np.inf, 1.0))
+                        if a == 0
+                        else (lambda im, a=a: atk.rotate(im, degrees=a)),
+                    )
+                    for a in ANGLES
+                ],
+            )
+            sweep(
+                "crop",
+                [
+                    (
+                        f"{c:g}",
+                        (lambda im: atk.AttackResult("c", "none", "", im, np.inf, 1.0))
+                        if c == 1.0
+                        else (lambda im, c=c: atk.centre_crop(im, frac=c)),
+                    )
+                    for c in CROPS
+                ],
+            )
+
+            report[name] = {
+                "checkpoint": ck,
+                "grid": stratum.cfg.grid,
+                "n_bits": stratum.cfg.n_bits,
+                "step": stratum.step,
+                "threshold": thr,
+                "psnr": float(np.mean([q[0] for q in qs])),
+                "ssim": float(np.mean([q[1] for q in qs])),
+                "frontier": rows,
+            }
         print()
 
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)

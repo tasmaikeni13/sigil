@@ -88,14 +88,37 @@ def main():
     )
     ap.add_argument("--min-ssim", type=float, default=0.90)
     ap.add_argument("--out", default="results/operating_point.json")
+    ap.add_argument("--smoke-test", action="store_true")
+    ap.add_argument("--tpu", action="store_true")
+    ap.add_argument("--trials", type=int, default=None)
     args = ap.parse_args()
+
+    if args.tpu:
+        args.device = "tpu"
+    if args.trials is not None:
+        args.limit = args.trials
+    if args.smoke_test:
+        args.limit = 1
+        args.latent_strengths = [0.045]
+        args.analytic_alphas = [0.46]
 
     import torch
 
     torch.set_grad_enabled(False)
     paths = list_images(args.corpus)[: args.limit]
+    if not paths:
+        for candidate in [
+            "data/corpus/natural",
+            "data/corpus",
+            "results/cache/codebook/hosts",
+        ]:
+            if Path(candidate).exists() and list_images(candidate):
+                paths = list_images(candidate)[: args.limit]
+                break
     images = [load_image(p, max_size=args.max_size) for p in paths]
     cases = build_cases(args.device)
+    if args.smoke_test:
+        cases = [c for c in cases if c[0] in ("clean", "jpeg50", "translate")]
 
     try:
         import lpips as _l

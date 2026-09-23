@@ -58,7 +58,7 @@ same image, and an adversary picks it. -/
 theorem detector_fpr
     (HA : Finset ιA) (aA : ιA → Fin n → ℝ) (hA : ∀ h ∈ HA, ∑ i, aA h i ^ 2 = 1)
     (HL : Finset ιL) (aL : ιL → Fin n → ℝ) (hL : ∀ h ∈ HL, ∑ i, aL h i ^ 2 = 1)
-    (α wA wL : ℝ) (hα0 : 0 < α) (hα1 : α ≤ 1)
+    (α wA wL : ℝ) (hα0 : 0 < α) (_hα1 : α ≤ 1)
     (hwA : 0 < wA) (hwL : 0 < wL) (hw : wA + wL ≤ 1)
     (hAne : HA.Nonempty) (hLne : HL.Nonempty)
     (hAle : wA * α / HA.card ≤ 1) (hLle : wL * α / HL.card ≤ 1) :

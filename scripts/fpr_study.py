@@ -48,8 +48,21 @@ def main():
     ap.add_argument("--checkpoint", default="checkpoints/latent.pt")
     ap.add_argument("--device", default="tpu")
     ap.add_argument("--out", default="results/fpr_study.json")
+    ap.add_argument("--output", default=None)
+    ap.add_argument("--smoke-test", action="store_true")
+    ap.add_argument("--tpu", action="store_true")
+    ap.add_argument("--trials", type=int, default=None)
     ap.add_argument("--seed", type=int, default=4242)
     args = ap.parse_args()
+
+    if args.tpu:
+        args.device = "tpu"
+    if args.trials is not None:
+        args.limit = args.trials
+    if args.output is not None:
+        args.out = args.output
+    if args.smoke_test:
+        args.limit = 2
 
     sigil = Sigil(
         SigilConfig(
@@ -67,6 +80,15 @@ def main():
     paths: List[Path] = []
     for root in args.corpus:
         paths.extend(list_images(root)[: args.limit])
+    if not paths:
+        for candidate in [
+            "data/corpus/natural",
+            "data/corpus",
+            "results/cache/codebook/hosts",
+        ]:
+            if Path(candidate).exists() and list_images(candidate):
+                paths.extend(list_images(candidate)[: args.limit])
+                break
     rng = np.random.default_rng(args.seed)
 
     rows: Dict[str, List[dict]] = {"unmarked": [], "wrong_key": []}

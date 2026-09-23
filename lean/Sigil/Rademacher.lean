@@ -47,7 +47,7 @@ lemma sum_exp_stat (a : Fin n → ℝ) (t : ℝ) :
     _ = ∏ i, (exp (t * a i) + exp (-(t * a i))) := by
         refine Finset.prod_congr rfl fun i _ => ?_
         rw [Fintype.sum_bool]
-        simp [sgn, mul_neg, add_comm]
+        simp [sgn, mul_neg]
 
 /-- Hoeffding's bound on the moment generating function, carrier by carrier. -/
 lemma prod_exp_le (a : Fin n → ℝ) (hnorm : ∑ i, a i ^ 2 = 1) (t : ℝ) :

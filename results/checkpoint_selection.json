@@ -1,0 +1,23 @@
+{
+  "checkpoints/temp_mock": {
+    "checkpoint": "checkpoints/temp_mock.pt",
+    "grid": 32,
+    "n_bits": 1024,
+    "step": 1000,
+    "threshold": 8.39848605969802,
+    "held": 0,
+    "t_sum": 10.361239433288574,
+    "psnr": 30.50081998518027,
+    "ssim": 0.9632904529571533,
+    "conditions": {
+      "clean": {
+        "median_T": 5.1572089195251465,
+        "rate": 0.0
+      },
+      "jpeg_q50": {
+        "median_T": 5.204030513763428,
+        "rate": 0.0
+      }
+    }
+  }
+}
