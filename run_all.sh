@@ -1,125 +1,85 @@
 #!/usr/bin/env bash
-# Reproduce the experiment pipeline used for the SIGIL paper on Google Cloud TPU v4-32.
-#
-# Run from the repository root with the virtual environment active. Each step
-# writes to a predictable location and can be rerun after it completes.
+# Reproduction driver. Smoke artifacts are deliberately separate from paper inputs.
 set -euo pipefail
 
 PY="${PY:-./.venv/bin/python}"
-export HF_HOME="${HF_HOME:-$PWD/data/hf}"
-LIMIT="${LIMIT:-20}"          # images taken from each corpus
-STEPS="${STEPS:-12000}"
-WORKERS="${WORKERS:-4}"
-PHOTO_SOURCE="${PHOTO_SOURCE:-}"
-
-SMOKE_TEST="${SMOKE_TEST:-0}"
+SMOKE_TEST=0
 if [ "${1:-}" = "--smoke-test" ]; then
-  SMOKE_TEST="1"
+  SMOKE_TEST=1
 fi
-
-# Configure Google Cloud TPU v4 environment defaults
 export TPU_CHIPS_PER_HOST_BOUNDS="${TPU_CHIPS_PER_HOST_BOUNDS:-2,2,1}"
 export TPU_HOST_BOUNDS="${TPU_HOST_BOUNDS:-1,1,1}"
 
-say() { printf '\n\033[1m== %s\033[0m\n' "$*"; }
+say() { printf '\n== %s\n' "$*"; }
 
-say "1/8  corpora"
 if [ "$SMOKE_TEST" = "1" ]; then
-  [ -d data/corpus/natural ] || $PY scripts/build_corpus.py --target-dir data/corpus --smoke-test
-else
-  [ -d data/corpus/natural ] || $PY scripts/build_corpus.py --n-natural 100 --n-synthetic 240
+  CORPUS="data/smoke_corpus"
+  RESULTS="results/smoke"
+  CHECKPOINTS="data/smoke_checkpoints"
+  mkdir -p "$RESULTS" "$CHECKPOINTS"
+  say "1/7 smoke corpus"
+  "$PY" scripts/build_corpus.py --target-dir "$CORPUS" --smoke-test
+  say "2/7 descriptor calibration"
+  "$PY" scripts/calibrate_descriptor.py --image-dir "$CORPUS/natural" \
+    --out "$RESULTS/descriptor_calibration.json" --smoke-test
+  say "3/7 one-step learned training"
+  "$PY" scripts/train_latent.py --data "$CORPUS/natural" \
+    --out "$CHECKPOINTS" --smoke-test
+  say "4/7 numerical theory checks"
+  "$PY" scripts/theory_checks.py --corpus "$CORPUS/natural" \
+    --checkpoint "$CHECKPOINTS/latent.pt" --limit 2 \
+    --out "$RESULTS/theory_checks.json"
+  say "5/7 benchmark and arena"
+  "$PY" scripts/benchmark.py --corpus "$CORPUS/natural" \
+    --checkpoint "$CHECKPOINTS/latent.pt" --device cpu --smoke-test \
+    --out "$RESULTS/benchmark.csv" --summary "$RESULTS/summary.json"
+  "$PY" scripts/arena.py --corpus "$CORPUS/natural" \
+    --checkpoint "$CHECKPOINTS/latent.pt" --devices cpu --smoke-test \
+    --out "$RESULTS/arena.csv" --summary "$RESULTS/arena_summary.json"
+  say "6/7 null-audit smoke"
+  "$PY" scripts/fpr_study.py --corpus "$CORPUS/natural" \
+    --checkpoint "$CHECKPOINTS/latent.pt" --device cpu --smoke-test \
+    --out "$RESULTS/fpr_study.json"
+  say "7/7 Lean proofs"
+  ( cd lean && PATH="${ELAN_HOME:-$HOME/.elan}/bin:$PATH" lake build Sigil )
+  say "smoke checks complete; no paper artifacts were generated"
+  exit 0
 fi
 
-# The photographic corpus is downscaled from the supplied image set.
-if [ ! -d data/corpus/photo ]; then
-  if [ -z "$PHOTO_SOURCE" ]; then
-    say "PHOTO_SOURCE is unset; skipping the photographic corpus"
-  else
-    $PY - "$PHOTO_SOURCE" <<'PY'
-import concurrent.futures as futures
-import sys
-from pathlib import Path
-
-sys.path.insert(0, ".")
-
-from sigil.common import load_image, save_image
-
-source = Path(sys.argv[1])
-destination = Path("data/corpus/photo")
-destination.mkdir(parents=True, exist_ok=True)
-paths = sorted(
-    path
-    for path in source.rglob("*")
-    if path.suffix.lower() in {".jpg", ".jpeg", ".png"}
-)[:300]
-
-
-def convert(path: Path) -> None:
-    save_image(destination / f"{path.stem}.png", load_image(path, max_size=768))
-
-
-with futures.ThreadPoolExecutor(max_workers=16) as executor:
-    list(executor.map(convert, paths))
-print(f"photo corpus: {len(paths)} images")
-PY
-  fi
+: "${SOURCE_MANIFEST:?Set SOURCE_MANIFEST to a licensed image manifest for full runs}"
+: "${NULL_CORPUS:?Set NULL_CORPUS to at least 100000 independent null images}"
+: "${SIGIL_MASTER_KEY_HEX:?Set SIGIL_MASTER_KEY_HEX to a private 32-byte hex key}"
+LIMIT="${LIMIT:-200}"
+STEPS="${STEPS:-12000}"
+WORKERS="${WORKERS:-4}"
+if [ "$LIMIT" -lt 200 ]; then
+  echo "full publication arena requires LIMIT >= 200" >&2
+  exit 2
 fi
 
-say "2/8  anchor calibration  ->  results/descriptor_calibration.json"
-if [ "$SMOKE_TEST" = "1" ]; then
-  $PY scripts/calibrate_descriptor.py --smoke-test
-else
-  $PY scripts/calibrate_descriptor.py --n-diversity 80 --n-stability 12
-fi
-
-say "3/8  train the learned stratum  ->  checkpoints/latent.pt"
-if [ ! -f checkpoints/latent.pt ]; then
-  if [ "$SMOKE_TEST" = "1" ]; then
-    $PY scripts/train_latent.py --smoke-test
-  else
-    $PY scripts/train_latent.py \
-        --steps "$STEPS" --batch 8 --workers "$WORKERS" --n-bits 1024 \
-        --vae-from 600 --adversarial-from 9000 --severity-steps 3500 --turbo \
-        --target-psnr 37.0 --out checkpoints \
-        --data data/div2k/DIV2K_train_HR data/corpus/photo data/corpus/synthetic
-  fi
-fi
-
-say "4/8  numerical verification of every analytic claim  ->  results/theory_checks.json"
-$PY scripts/theory_checks.py --limit "$([ "$SMOKE_TEST" = "1" ] && echo 10 || echo 40)"
-
-say "5a/8  the full attack benchmark  ->  results/benchmark.csv"
-if [ "$SMOKE_TEST" = "1" ]; then
-  $PY -u scripts/benchmark.py --smoke-test
-else
-  $PY -u scripts/benchmark.py --limit "$LIMIT"
-fi
-
-say "5b/8  the arena: SIGIL vs SynthID-style vs Stable-Signature-style,"
-say "      including the reverse-SynthID removal suite, sharded across TPU workers"
-if [ "$SMOKE_TEST" = "1" ]; then
-  $PY -u scripts/arena.py --smoke-test
-else
-  $PY -u scripts/arena.py --limit "$LIMIT" --workers "$WORKERS"
-fi
-
-say "5c/8  larger-sample false-positive margin  ->  results/fpr_study.json"
-if [ "$SMOKE_TEST" = "1" ]; then
-  $PY -u scripts/fpr_study.py --smoke-test
-else
-  $PY -u scripts/fpr_study.py --limit 150
-fi
-
-say "6/8  figures and tables"
-$PY scripts/figures.py
-$PY scripts/make_tables.py
-
-say "7/8  machine-checked proofs, then the manuscript"
+say "1/8 verified corpus"
+"$PY" scripts/build_corpus.py --target-dir data/corpus \
+  --source-manifest "$SOURCE_MANIFEST"
+say "2/8 descriptor calibration"
+"$PY" scripts/calibrate_descriptor.py --image-dir data/corpus/natural
+say "3/8 production training"
+"$PY" scripts/train_latent.py --steps "$STEPS" --batch 8 \
+  --workers "$WORKERS" --n-bits 1024 --vae-from 600 \
+  --adversarial-from 9000 --severity-steps 3500 --turbo \
+  --target-psnr 42.0 --out checkpoints --data data/corpus/natural
+say "4/8 numerical theory checks"
+"$PY" scripts/theory_checks.py --corpus data/corpus/natural --limit 40
+say "5/8 benchmark, arena, null audit"
+"$PY" scripts/benchmark.py --corpus data/corpus/natural --limit "$LIMIT"
+"$PY" scripts/arena.py --corpus data/corpus/natural --limit "$LIMIT" \
+  --workers "$WORKERS" --corpus-manifest data/corpus_manifest.json
+"$PY" scripts/fpr_study.py --corpus "$NULL_CORPUS" --trials 100000
+say "6/8 figures and tables"
+"$PY" scripts/figures.py
+"$PY" scripts/make_tables.py
+say "7/8 Lean proofs"
 ( cd lean && PATH="${ELAN_HOME:-$HOME/.elan}/bin:$PATH" lake build Sigil )
-if command -v latexmk >/dev/null 2>&1; then
-  ( cd paper && latexmk -pdf -f -interaction=nonstopmode sigil.tex )
-else
-  ( cd paper && pdflatex -interaction=nonstopmode sigil.tex )
-fi
-
-say "done - paper/sigil.pdf"
+say "8/8 manuscript"
+( cd paper && pdflatex -interaction=nonstopmode sigil.tex && \
+  pdflatex -interaction=nonstopmode sigil.tex )
+say "done"

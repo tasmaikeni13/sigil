@@ -18,6 +18,7 @@ Bonferroni for the ``2^k`` hypotheses it searched.
 from __future__ import annotations
 
 import math
+import secrets
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional, Sequence, Tuple
@@ -64,7 +65,9 @@ class LinearCode:
 
 def build_code(master_key: bytes, n_bits: int, k: int) -> LinearCode:
     rng = key_stream_rng(master_key, "linear-code", k.to_bytes(2, "little"))
-    rows = rng.integers(0, 1 << k, size=n_bits, dtype=np.int64)
+    # A zero generator row fixes that bit for every nonce and leaks a static
+    # carrier under cross-image averaging. Nonzero rows are exactly balanced.
+    rows = rng.integers(1, 1 << k, size=n_bits, dtype=np.int64)
     mask = rng.integers(0, 2, size=n_bits).astype(np.int64)
     return LinearCode(rows=rows, mask=mask, k=k)
 
@@ -307,11 +310,14 @@ class LatentStratum:
         search_top: int = 12,
         early_exit: float = 12.0,
         refine_deg: float = 2.0,
+        master_key: Optional[bytes] = None,
     ):
         ck = torch.load(str(checkpoint), map_location="cpu", weights_only=False)
         raw = dict(ck.get("config", {}))
         cfg_fields = LatentConfig.__dataclass_fields__.keys()
         self.cfg = LatentConfig(**{k: v for k, v in raw.items() if k in cfg_fields})
+        if master_key is not None:
+            self.cfg = LatentConfig(**{**self.cfg.__dict__, "master_key": master_key})
         self.device = device
         self.torch_device = "cpu" if str(device).startswith("tpu") else device
         self.encoder = Encoder(self.cfg).to(self.torch_device).eval()
@@ -350,8 +356,11 @@ class LatentStratum:
         return t.to(self.torch_device).float().clamp(0, 1)
 
     def random_nonce(self, rng: Optional[np.random.Generator] = None) -> int:
-        rng = rng or np.random.default_rng()
-        return int(rng.integers(0, self.code.size))
+        return (
+            int(rng.integers(0, self.code.size))
+            if rng is not None
+            else secrets.randbelow(self.code.size)
+        )
 
     # -- embedding ---------------------------------------------------------
 
@@ -488,6 +497,7 @@ class LatentStratum:
                 if not (d == 0.0 and z == 1.0)
             ]
             saved_h, saved_m = self.hypotheses, getattr(self, "_masks", None)
+            refined = None
             try:
                 self.hypotheses = tuple(fine)
                 self._masks = None
@@ -498,21 +508,36 @@ class LatentStratum:
                 k = int(vf.argmax())
                 if float(vf[k]) > best_t:
                     best_t, best_nonce = float(vf[k]), int(jf[k])
-                    self.hypotheses, self._masks = saved_h, saved_m
-                    return self._package(
-                        best_t, best_nonce, best_h, lf[k], cf, expected_nonce, top_m
-                    )
-            except Exception:
-                pass
+                    refined = (fine[k], lf[k], cf, k)
             finally:
                 self.hypotheses, self._masks = saved_h, saved_m
+            if refined is not None:
+                h, raw, fine_corr, k = refined
+                return self._package(
+                    best_t,
+                    best_nonce,
+                    k,
+                    raw,
+                    fine_corr,
+                    expected_nonce,
+                    top_m,
+                    hypothesis=h,
+                )
 
         return self._package(
             best_t, best_nonce, best_h, logits[best_h], corr, expected_nonce, top_m
         )
 
     def _package(
-        self, best_t, best_nonce, best_h, raw_logits, corr, expected_nonce, top_m
+        self,
+        best_t,
+        best_nonce,
+        best_h,
+        raw_logits,
+        corr,
+        expected_nonce,
+        top_m,
+        hypothesis=None,
     ):
         n_hyp = self.code.size * self.n_searched()
         p = bonferroni(rademacher_pvalue(best_t), n_hyp)
@@ -521,13 +546,17 @@ class LatentStratum:
             want = torch.from_numpy(
                 self.code.codeword(int(expected_nonce)).astype(np.float32)
             ).to(self.torch_device)
-            acc = float(((raw_logits > 0).float() == want).float().mean())
+            h = hypothesis or self.hypotheses[int(best_h)]
+            valid = hypothesis_validity(h, self.cfg.grid, self.device)[
+                : self.cfg.n_bits
+            ]
+            acc = float(((raw_logits > 0).float() == want)[valid].float().mean())
         det = LatentDetection(
             statistic=float(best_t),
             pvalue=float(p),
             n_hypotheses=n_hyp,
             nonce=int(best_nonce),
-            hypothesis=self.hypotheses[int(best_h)].name,
+            hypothesis=(hypothesis or self.hypotheses[int(best_h)]).name,
             bit_accuracy=acc,
         )
         k = min(top_m, corr.shape[1])

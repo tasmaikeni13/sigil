@@ -1,5 +1,11 @@
 # Phase 02: Adversarial Geometry, Spectral Invariance & Codebook Collapse Resistance
 
+The finite-grid detector only inherits exact translation and ring-gain
+identities in the idealized DFT model. Interpolated rotation, crop, and
+rescaling survival are empirical properties. A $1/\sqrt{N}$ average-residual
+heuristic additionally requires independent, balanced per-image carriers; it
+does not follow for repeated content descriptors without the nonce defense.
+
 ## 1. Objectives & Theoretical Scope
 
 Phase 02 addresses the core physical vulnerability of existing watermarking architectures: **codebook vulnerability under collusion** and **loss of synchronization under continuous geometric distortions**.
@@ -27,14 +33,18 @@ $$\bar{W}_N = \mathbf{w}_{\text{static}} + \frac{1}{N} \sum_{k=1}^N \epsilon_k \
 The adversary can extract the exact static watermark pattern $\mathbf{w}_{\text{static}}$ with signal-to-noise ratio increasing linearly with $\sqrt{N}$, allowing complete watermark subtraction from any protected image. Furthermore, across $N$ images, the cross-image correlation of residual spectra exhibits an $\mathcal{O}(1)$ non-vanishing component:
 $$\mathbb{E}\left[ \left|\frac{1}{N} \sum_{k=1}^N e^{j \angle \mathcal{F}(W_k)(u, v)}\right| \right] = \Theta(1)$$
 
-### 2.3 Provable Codebook Invariance in SIGIL
-In SIGIL, each image derives its carrier set $\mathcal{C}(I_k, \text{nonce}_k)$ from its unique image content and a per-image cryptographically random nonce:
-$$\mathcal{C}(I_k, \text{nonce}_k) = \text{KDF}(\text{Anchor}(I_k), \text{nonce}_k)$$
-Because carrier locations and sign assignments $\mathbf{s}_k$ are independent across nonces $k \neq l$:
+### 2.3 Conditional Codebook-Averaging Bound
+SIGIL has separate content-derived and nonce-derived anchor families. Content
+anchors can repeat across related images; only independently sampled nonces
+guarantee distinct nonce-anchor inputs. Under a private PRF and independent
+nonces, the associated signs are modeled as independent:
 $$\mathbb{E}\left[ \langle \mathbf{s}_k, \mathbf{s}_l \rangle \right] = 0, \quad \operatorname{Var}\left( \langle \mathbf{s}_k, \mathbf{s}_l \rangle \right) = K$$
-Under collusion averaging of $N$ images, the expected phase coherence at any frequency $(u, v)$ scales strictly as:
+If the residual phasors at a frequency are additionally independent, unit
+magnitude, and mean zero, Jensen's inequality gives:
 $$\mathbb{E}\left[ \left|\frac{1}{N} \sum_{k=1}^N e^{j \angle \mathcal{F}(W_k)(u, v)}\right| \right] \le \frac{C}{\sqrt{N}}$$
-where $C$ is a universal constant. The static watermark component is identically zero. Subtracting $\bar{I}_N$ from an image leaves the watermark intact with high probability, rendering collusion-based stripping provably ineffective.
+with $C=1$ under those assumptions. This does not prove that arbitrary image
+residuals, repeated content anchors, or an adaptive attacker satisfy the
+assumptions. Codebook subtraction must therefore be evaluated empirically.
 
 ---
 
@@ -44,12 +54,15 @@ where $C$ is a universal constant. The static watermark component is identically
 Let $\mathcal{F}\{I\}(u, v) = R(u, v) e^{j \phi(u, v)}$. Under spatial translation $I'(x, y) = I(x - x_0, y - y_0)$:
 $$\mathcal{F}\{I'\}(u, v) = R(u, v) e^{j (\phi(u, v) - 2\pi (u x_0 / W + v y_0 / H))}$$
 The magnitude $|F(u, v)| = R(u, v)$ is strictly translation invariant. By embedding the invariant stratum entirely in the magnitude excess over radial expectation:
-$$Z(u, v) = \frac{|F(u, v)| - \bar{R}(\sqrt{u^2 + v^2})}{\sigma_R(\sqrt{u^2 + v^2})}$$
-the detector statistic $T$ is mathematically identical for all $(x_0, y_0) \in \mathbb{R}^2$ without requiring any spatial alignment search (Theorem T1).
+$$Z(u, v) = \frac{\log|F(u, v)| - \mu_R(\sqrt{u^2 + v^2})}{\sigma_R(\sqrt{u^2 + v^2})}$$
+the ideal discrete-grid detector statistic is identical under cyclic integer
+translations (Theorem T1). Interpolated subpixel translation is not covered by
+that theorem.
 
 ### 3.2 Affine Lie Group Action on Fourier Space
-Under an affine transformation $\mathbf{x}' = \mathbf{A}\mathbf{x} + \mathbf{b}$, the Fourier magnitude transforms as:
-$$|\mathcal{F}\{I'\}(\boldsymbol{\omega})| = \frac{1}{|\det \mathbf{A}|} |\mathcal{F}\{I\}(\mathbf{A}^{-\top} \boldsymbol{\omega})|$$
+For the continuous pullback $I'(x)=I(A^{-1}(x-b))$, the Fourier magnitude
+transforms as:
+$$|\mathcal{F}\{I'\}(\boldsymbol{\omega})| = |\det \mathbf{A}|\, |\mathcal{F}\{I\}(\mathbf{A}^{\top} \boldsymbol{\omega})|$$
 By decomposing $\mathbf{A}$ via singular value decomposition into rotation $R(\theta)$, uniform scaling $s$, aspect ratio deformation $\lambda$, and shear, the detector evaluates the carrier correlation over a compact discrete grid $\mathcal{G}_{\text{geom}} \subset \text{SE}(2) \times \mathbb{R}^+$. The grid spacing $\Delta \theta, \Delta s$ is formally bounded by the Nyquist rate of the spectral excess correlation function to ensure worst-case correlation drop $\Delta \rho \le 0.05$.
 
 ---
@@ -74,7 +87,7 @@ The agent must run comparative Monte Carlo sweeps validating that SIGIL outperfo
 - **Root Cause**: Carrier frequency hashing has non-uniform marginal distribution or anchor collisions across different images.
 - **Agent Action**:
   1. Inspect `sigil/anchors.py` and `sigil/invariant.py:build_carriers`.
-  2. Implement HMAC-SHA256 based PRNG seeding (`sigil/common.py:key_stream_rng`) with image-dependent nonce salts.
+  2. Check the HMAC-SHA256 counter stream (`sigil/common.py:key_stream_rng`) and image-dependent nonce salts.
   3. Re-simulate cross-image phase coherence across 200 random images until empirical coherence converges to $\frac{1}{\sqrt{N}} \pm 2\sigma$.
 
 ### Failure Mode 2: Geometric Sensitivity Gap Under Large Rotations ($> 15^\circ$)

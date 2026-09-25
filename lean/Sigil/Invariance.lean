@@ -8,15 +8,14 @@ by training, and both mechanisms are elementary enough to check formally.
 
 `dft_translate_norm`   Shifting the image multiplies each Fourier coefficient by
                        a unit character, so the magnitude — and therefore the
-                       statistic — is literally unchanged.  The detector needs
-                       no grid search to survive translation.
+                       statistic — is unchanged on the ideal cyclic grid.
 
 `excess_radial_gain`   Multiplying every coefficient of a ring by one common
                        factor shifts the ring's log-magnitudes by one common
                        constant, which the ring mean removes exactly.  Gaussian
                        blur, unsharp masking, resampling roll-off, a global
-                       contrast change and the smooth envelope of a JPEG
-                       quantisation table are all of this form.
+                       contrast change can approximate this form; finite-grid
+                       image operators need not preserve it exactly.
 -/
 import Mathlib
 

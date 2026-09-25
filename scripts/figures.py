@@ -876,6 +876,7 @@ def main():
     ap.add_argument("--theory", default="results/theory_checks.json")
     ap.add_argument("--arena", default="results/arena.csv")
     ap.add_argument("--arena-summary", default="results/arena_summary.json")
+    ap.add_argument("--fpr", default="results/fpr_study.json")
     ap.add_argument("--frontier", default="results/geometry_frontier.json")
     ap.add_argument("--out", default="results/figures")
     ap.add_argument("--corpus", default="data/corpus/natural")
@@ -883,7 +884,36 @@ def main():
     ap.add_argument("--device", default="tpu")
     ap.add_argument("--alpha", type=float, default=1e-6)
     ap.add_argument("--min-psnr", type=float, default=24.0)
+    ap.add_argument("--allow-demo", action="store_true")
+    ap.add_argument("--min-arena-images", type=int, default=200)
     args = ap.parse_args()
+    if (
+        args.allow_demo
+        and Path(args.out).resolve() == Path("results/figures").resolve()
+    ):
+        ap.error("demo figures require --out outside results/figures")
+
+    from scripts.publication import (
+        require_publishable_arena,
+        require_publishable_benchmark,
+        require_publishable_null_audit,
+    )
+
+    try:
+        arena = require_publishable_arena(
+            args.arena_summary,
+            allow_demo=args.allow_demo,
+            min_images=args.min_arena_images,
+        )
+        require_publishable_benchmark(
+            args.summary,
+            arena,
+            allow_demo=args.allow_demo,
+            min_images=args.min_arena_images,
+        )
+        require_publishable_null_audit(args.fpr, arena, allow_demo=args.allow_demo)
+    except ValueError as exc:
+        ap.error(str(exc))
 
     style()
     out = Path(args.out)

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Build and ingest the open-source evaluation corpora.
 
-Supports both full Chinchilla-scale ingestion across open-source lineage
-(COCO, Unsplash, LAION, Wikimedia) and instant reproducible smoke-testing.
+Full ingestion uses an explicit, checksummed source manifest. Smoke mode
+creates procedural execution fixtures that are never publication eligible.
 
 Usage:
-    python scripts/build_corpus.py --target-dir data/corpus --smoke-test
-    python scripts/build_corpus.py --target-dir data/corpus --coco-count 1000 --unsplash-count 500
+    python scripts/build_corpus.py --target-dir data/smoke_corpus --smoke-test
+    python scripts/build_corpus.py --target-dir data/corpus --source-manifest sources.json
 """
 
 from __future__ import annotations
@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Dict, List
 
 import numpy as np
+from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -75,7 +76,7 @@ def generate_naturalistic_procedural(size: int = 512, seed: int = 0) -> np.ndarr
 
 
 def run_smoke_test(target_dir: Path) -> List[Dict]:
-    """Ingest/build at least 60 validated open-source images."""
+    """Build procedural and repository fixtures for execution tests only."""
     target_dir.mkdir(parents=True, exist_ok=True)
     natural_dir = target_dir / "natural"
     synthetic_dir = target_dir / "synthetic"
@@ -104,8 +105,9 @@ def run_smoke_test(target_dir: Path) -> List[Dict]:
             entry = {
                 "image_id": f"img_{idx:04d}",
                 "file": f"natural/img_{idx:04d}.png",
-                "source": "Unsplash-OpenSample",
-                "license": "CC0",
+                "source": "repository-fixture-unverified",
+                "license": "unverified",
+                "benchmark_eligible": False,
                 "sha256": sha256_file(dest_nat),
                 "original_dimensions": [512, 512, 3],
                 "spectral_flatness": spectral_flatness(img),
@@ -127,8 +129,9 @@ def run_smoke_test(target_dir: Path) -> List[Dict]:
         entry = {
             "image_id": f"img_{idx:04d}",
             "file": f"synthetic/syn_{i:04d}.png",
-            "source": "LAION-Aesthetics-OpenSubset",
-            "license": "CC0",
+            "source": "procedural-smoke",
+            "license": "not-applicable",
+            "benchmark_eligible": False,
             "sha256": sha256_file(dest_syn),
             "original_dimensions": [512, 512, 3],
             "spectral_flatness": spectral_flatness(img),
@@ -139,41 +142,97 @@ def run_smoke_test(target_dir: Path) -> List[Dict]:
     return manifest_entries
 
 
+ALLOWED_LICENSES = {"CC0", "CC-BY-2.0", "CC-BY-4.0", "Apache-2.0"}
+
+
+def verify_source_manifest(manifest_path: Path, target: Path) -> List[Dict]:
+    """Preflight every licensed source before writing any corpus output."""
+    data = json.loads(manifest_path.read_text())
+    entries = data["manifest"] if isinstance(data, dict) else data
+    if not isinstance(entries, list) or not entries:
+        raise ValueError("source manifest must contain a nonempty image list")
+    if any(target.rglob("*.png")) or any(target.rglob("*.jpg")):
+        raise ValueError("target already contains images; use an empty directory")
+    verified: List[Dict] = []
+    seen_hashes: set[str] = set()
+    for i, entry in enumerate(entries):
+        if not isinstance(entry, dict):
+            raise ValueError(f"source entry {i} must be an object")
+        for field in ("path", "source", "license", "sha256"):
+            if not entry.get(field):
+                raise ValueError(f"source entry {i} lacks {field}")
+        if entry["license"] not in ALLOWED_LICENSES:
+            raise ValueError(f"source entry {i} has unapproved license")
+        source = (manifest_path.parent / entry["path"]).resolve()
+        if not source.is_file():
+            raise ValueError(f"missing source image: {source}")
+        digest = sha256_file(source)
+        if digest != entry["sha256"]:
+            raise ValueError(f"checksum mismatch: {source}")
+        if digest in seen_hashes:
+            raise ValueError(f"duplicate source image: {source}")
+        seen_hashes.add(digest)
+        with Image.open(source) as image:
+            image.verify()
+        with Image.open(source) as image:
+            width, height = image.size
+        img = load_image(source, max_size=1024)
+        if min(img.shape[:2]) < 64 or float(img.std()) < 0.02:
+            raise ValueError(f"degenerate or undersized source image: {source}")
+        verified.append(
+            {
+                "image_id": f"img_{i:05d}",
+                "source_path": str(source),
+                "source_sha256": digest,
+                "source": entry["source"],
+                "license": entry["license"],
+                "original_dimensions": [height, width, 3],
+                "benchmark_eligible": True,
+            }
+        )
+    return verified
+
+
+def build_verified_corpus(manifest_path: Path, target: Path) -> List[Dict]:
+    verified = verify_source_manifest(manifest_path, target)
+    natural = target / "natural"
+    natural.mkdir(parents=True, exist_ok=True)
+    for entry in verified:
+        source = Path(entry["source_path"])
+        image = load_image(source, max_size=1024)
+        dest = natural / f"{entry['image_id']}.png"
+        save_image(dest, image)
+        entry["file"] = f"natural/{dest.name}"
+        entry["sha256"] = sha256_file(dest)
+        entry["spectral_flatness"] = spectral_flatness(image)
+    return verified
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--target-dir", "--out", default="data/corpus", dest="target_dir")
     ap.add_argument("--smoke-test", action="store_true")
-    ap.add_argument("--coco-count", type=int, default=1000)
-    ap.add_argument("--unsplash-count", type=int, default=500)
-    ap.add_argument("--laion-count", type=int, default=500)
-    ap.add_argument("--div2k", default="data/div2k/DIV2K_valid_HR")
-    ap.add_argument("--n-synthetic", type=int, default=200)
-    ap.add_argument("--n-natural", type=int, default=100)
-    ap.add_argument("--natural-max-size", type=int, default=1024)
-    ap.add_argument("--synthetic-size", type=int, default=512)
-    ap.add_argument("--device", default="tpu")
-    ap.add_argument("--workers", type=int, default=4)
-    ap.add_argument("--seed", type=int, default=20260727)
+    ap.add_argument("--source-manifest", type=Path)
     args = ap.parse_args()
 
     target = Path(args.target_dir)
-    target.mkdir(parents=True, exist_ok=True)
-
-    if args.smoke_test or not (Path(args.div2k).exists()):
-        print(
-            f"Building verified open-source corpus under {target} (smoke-test mode)..."
-        )
+    if args.smoke_test:
+        print(f"Building non-publishable smoke fixtures under {target}...")
         manifest_entries = run_smoke_test(target)
     else:
-        # Full mode
-        manifest_entries = run_smoke_test(target)
+        if args.source_manifest is None:
+            ap.error(
+                "full ingestion requires --source-manifest with licensed image hashes"
+            )
+        manifest_entries = build_verified_corpus(args.source_manifest, target)
 
-    corpus_manifest_path = Path("data/corpus_manifest.json")
+    corpus_manifest_path = target.with_name(f"{target.name}_manifest.json")
     corpus_manifest_path.parent.mkdir(parents=True, exist_ok=True)
 
     data = {
         "count": len(manifest_entries),
         "target_dir": str(target),
+        "benchmark_eligible": not args.smoke_test,
         "manifest": manifest_entries,
     }
     corpus_manifest_path.write_text(json.dumps(data, indent=2))

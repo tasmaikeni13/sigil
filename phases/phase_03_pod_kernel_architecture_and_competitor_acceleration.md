@@ -1,5 +1,9 @@
 # Phase 03: TPU v4-32 Pod Kernel Architecture & Competitor Acceleration
 
+The performance figures and competitor-native kernels below are phase targets,
+not verified features of the current clone. The present learned model uses
+host-side PyTorch, and CPU-only smoke runs do not establish TPU parity.
+
 ## 1. Objectives & Hardware Architecture Scope
 
 Phase 03 implements, optimizes, and formally benchmarks the computational engine of SIGIL and its competitor baselines directly on the Google Cloud TPU v4-32 pod slice.

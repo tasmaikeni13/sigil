@@ -374,7 +374,11 @@ class InvariantStratum:
             if not keys:
                 continue
             n_car = cfg.carriers_for(spec)
-            n_hyp = len(keys) * rots.size * scls.size * refls.size
+            # The local scale grid is selected adaptively from the same data.
+            # Charge every position it could occupy, not just the winner.
+            n_hyp = (
+                len(keys) * rots.size * scls.size * refls.size * cfg.refine_scale_steps
+            )
             sub = slice(None, min(cfg.proposal_carriers, n_car))
 
             cache: Dict[int, CarrierSet] = {

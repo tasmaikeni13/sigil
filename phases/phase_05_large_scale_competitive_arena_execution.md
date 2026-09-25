@@ -1,12 +1,21 @@
 # Phase 05: Large-Scale Competitive Arena Execution on TPU Pod
 
+The full arena now requires at least 200 manifest-verified images, a trained
+checkpoint, a private deployment key, the reverse-SynthID source, an attached
+TPU, and the complete heavy/codebook catalogue. Every embedded image must meet
+42 dB PSNR and 0.985 SSIM. The summary records eligibility and hardware/key
+metadata; smoke runs are separate and cannot populate paper tables. The
+numeric superiority thresholds below remain unverified until the full run.
+Codebook references must be disjoint from the 200 evaluation images, so the
+manifest needs at least `--limit + --codebook-refs` eligible images.
+
 ## 1. Objectives & Arena Design
 
 Phase 05 executes the definitive large-scale empirical competition between **SIGIL** and its peer baselines (**SynthID-style** and **Stable-Signature-style**) directly on the Google Cloud TPU v4-32 pod.
 
 ### Core Arena Mandates:
 1. **Identical Calibration**: All systems are evaluated on the exact same open-source corpus (Phase 04), against the exact same attack suite, under identical perceptual distortion constraints (PSNR $\ge 42.0\text{ dB}$, SSIM $\ge 0.985$).
-2. **Identical False-Positive Floor**: Thresholds are fixed analytically to enforce an exact family-wise error rate $\alpha = 10^{-6}$. No empirical threshold tuning or target snooping is permitted.
+2. **False-Positive Accounting**: SIGIL uses conservative private-key null bounds and Bonferroni accounting at $\alpha = 10^{-6}$; this is not an empirical equality or a baseline guarantee. No empirical threshold tuning or target snooping is permitted.
 3. **Hardware-Native Sharded Execution**: Work is sharded across the 4 local TPU v4 chips (`TpuDevice(0..3)`) using a multi-process pool, evaluating hundreds of attack variations in parallel.
 4. **Superiority Enforcement**: SIGIL must match or strictly exceed competitors across survival rates, bit accuracy, and collusion resilience.
 
@@ -113,6 +122,7 @@ export TPU_HOST_BOUNDS="1,1,1"
 
 ### Acceptance Criteria
 - [ ] Arena completes across all 30+ attacks on the open-source corpus without unhandled exceptions.
+- [ ] At least 30 attacks have common admissible image/attack pairs across all three systems.
 - [ ] SIGIL achieves $\ge 99.8\%$ clean detection rate at $\alpha = 10^{-6}$.
 - [ ] SIGIL strictly outperforms SynthID and Stable Signature on geometric distortions and collusion attacks.
 - [ ] Summary CSV and JSON files successfully generated in `results/arena/`.

@@ -38,6 +38,13 @@ def test_sigil_end_to_end_tpu():
     assert det.analytic is not None
     assert det.analytic.best_anchor == "nonce"
     assert det.analytic.statistic > 10.0
+    base_search = (
+        len(cfg.invariant.rotations_deg)
+        * cfg.invariant.n_scales
+        * (2 if cfg.invariant.search_reflection else 1)
+        * cfg.invariant.refine_scale_steps
+    )
+    assert all(a.n_hypotheses % base_search == 0 for a in det.analytic.per_anchor)
 
     # Verify that an unmarked image does not falsely detect (H0 null check)
     det_unmarked = sig.detect(img, expected_nonce=res.nonce)

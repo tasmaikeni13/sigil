@@ -48,6 +48,8 @@ def binom_sf_half(n: int, s: int) -> float:
     counts.  Exact for every ``n`` a detector will ever use.
     """
     n = int(n)
+    if n < 0:
+        raise ValueError("n must be non-negative")
     s = int(math.ceil(s))
     if s <= 0:
         return 1.0
@@ -58,7 +60,10 @@ def binom_sf_half(n: int, s: int) -> float:
     for k in range(n, s - 1, -1):
         total += c
         c = c * k // (n - k + 1)
-    return float(total) / float(1 << n)
+    # Convert the integer ratio without first converting 2**n to float:
+    # float(2**1024) overflows even though the probability is finite.
+    shift = max(0, total.bit_length() - 1000)
+    return math.ldexp(float(total >> shift), shift - n)
 
 
 def binom_threshold_half(n: int, alpha: float) -> int:
@@ -119,7 +124,11 @@ def rademacher_threshold(alpha: float) -> float:
 
 def bonferroni(p_min: float, n_hypotheses: int) -> float:
     """Family-wise valid p-value for the best of ``n_hypotheses`` searched tests."""
-    return float(min(1.0, max(0.0, p_min) * max(int(n_hypotheses), 1)))
+    if not math.isfinite(p_min) or not 0.0 <= p_min <= 1.0:
+        raise ValueError("p_min must be a finite probability")
+    if n_hypotheses < 1 or int(n_hypotheses) != n_hypotheses:
+        raise ValueError("n_hypotheses must be a positive integer")
+    return float(min(1.0, p_min * int(n_hypotheses)))
 
 
 def fuse_pvalues(
@@ -135,13 +144,17 @@ def fuse_pvalues(
     ps = [float(p) for p in pvalues]
     if not ps:
         return 1.0
+    if any(not math.isfinite(p) or not 0.0 <= p <= 1.0 for p in ps):
+        raise ValueError("p-values must be finite probabilities")
     if weights is None:
         ws = [1.0 / len(ps)] * len(ps)
     else:
         ws = [float(w) for w in weights]
+        if len(ws) != len(ps) or any(not math.isfinite(w) or w <= 0 for w in ws):
+            raise ValueError("weights must be positive, finite, and match p-values")
         total = sum(ws)
-        if total <= 0:
-            raise ValueError("weights must be positive")
+        if not math.isfinite(total) or total <= 0:
+            raise ValueError("weight sum must be finite and positive")
         ws = [w / total for w in ws]
     return float(min(1.0, min(p / w for p, w in zip(ps, ws) if w > 0)))
 

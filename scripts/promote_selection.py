@@ -22,13 +22,22 @@ def best(path: Path) -> Optional[dict]:
     data = json.loads(path.read_text())
     if not data:
         return None
-    name, rec = max(data.items(), key=lambda kv: (kv[1]["held"], kv[1]["t_sum"]))
+    candidates = [
+        (name, rec)
+        for name, rec in data.items()
+        if rec.get("eligible") is True
+        and rec.get("mock") is False
+        and rec.get("key_mode") == "private"
+    ]
+    if not candidates:
+        return None
+    name, rec = max(candidates, key=lambda kv: (kv[1]["score"], kv[1]["psnr"]))
     return {"name": name, **rec}
 
 
 def link(target: Path, name: Path) -> None:
     if name.is_symlink() or name.exists():
-        name.unlink()
+        raise FileExistsError(f"refusing to overwrite existing checkpoint role: {name}")
     # Relative, so the tree stays movable.
     name.symlink_to(os.path.relpath(target.resolve(), name.parent.resolve()))
     print(f"  {name}  ->  {name.readlink()}")
@@ -42,25 +51,25 @@ def main():
     args = ap.parse_args()
 
     out = Path(args.out)
-    out.mkdir(parents=True, exist_ok=True)
-    rc = 0
+    ready = []
     for role, sel in (("fine", args.fine), ("coarse", args.coarse)):
         b = best(Path(sel))
         if b is None:
-            print(f"  no ranking for {role} ({sel})")
-            rc = 1
-            continue
+            raise SystemExit(f"no eligible private-key ranking for {role} ({sel})")
         src = Path(b["checkpoint"])
         if not src.exists():
-            print(f"  ranked winner missing: {src}")
-            rc = 1
-            continue
+            raise SystemExit(f"ranked winner missing: {src}")
+        if (out / f"{role}.pt").exists() or (out / f"{role}.pt").is_symlink():
+            raise SystemExit(f"refusing to overwrite checkpoint role: {role}")
+        ready.append((role, src, b))
+    out.mkdir(parents=True, exist_ok=True)
+    for role, src, b in ready:
         print(
             f"{role}: {b['name']}  grid {b['grid']}  bits {b['n_bits']}  "
             f"held {b['held']}  sumT {b['t_sum']:.1f}"
         )
         link(src, out / f"{role}.pt")
-    return rc
+    return 0
 
 
 if __name__ == "__main__":

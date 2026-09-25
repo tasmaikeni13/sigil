@@ -9,7 +9,7 @@ quantity beside the bound so the slack is visible.
     T1  translation invariance of the detector statistic
     T2  invariance to zero-phase radially symmetric filtering
     T3  invariance to global gain and offset
-    T4  the exact null: Rademacher tail against the Hoeffding bound
+    T4  the finite-sample Rademacher tail against the Hoeffding bound
     T5  multiplicity: searched maxima against the Bonferroni-corrected bound
     T6  codebook collapse: cross-image phase coherence at the 1/sqrt(N) floor
     T7  anchor diversity and attack stability
@@ -353,7 +353,7 @@ def t8_fusion() -> Dict:
     return {
         "n_trials": n,
         "rows": rows,
-        "note": "empirical <= alpha for every dependence structure",
+        "note": "finite-sample empirical rates fluctuate around the proved upper bound",
     }
 
 

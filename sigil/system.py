@@ -21,13 +21,14 @@ carrier set.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import secrets
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 
-from .common import quality, to_float01
+from .common import derive_key, quality, to_float01
 from .invariant import InvariantConfig, InvariantDetection, InvariantStratum
 from .learned import LatentDetection, LatentStratum
 from .stats import fuse_pvalues, log10p
@@ -58,6 +59,8 @@ class SigilConfig:
     #: would double the residual energy for no gain.
     latent_strength: Optional[float] = None
     latent_coarse_strength: Optional[float] = None
+    #: Private deployment root. The public defaults are for demonstrations only.
+    master_key: Optional[bytes] = None
 
 
 @dataclass
@@ -145,11 +148,21 @@ class Sigil:
 
     def __init__(self, config: Optional[SigilConfig] = None):
         self.cfg = config or SigilConfig()
-        self.analytic = InvariantStratum(self.cfg.invariant, device=self.cfg.device)
+        root = self.cfg.master_key
+        invariant = (
+            replace(self.cfg.invariant, master_key=derive_key(root, "sigil-analytic"))
+            if root is not None
+            else self.cfg.invariant
+        )
+        self.analytic = InvariantStratum(invariant, device=self.cfg.device)
         self.latent: Optional[LatentStratum] = None
         ck = self.cfg.latent_checkpoint
         if ck and Path(ck).exists():
-            self.latent = LatentStratum(ck, device=self.cfg.device)
+            self.latent = LatentStratum(
+                ck,
+                device=self.cfg.device,
+                master_key=derive_key(root, "sigil-learned-fine") if root else None,
+            )
             if self.cfg.latent_strength:
                 self.latent.cfg = type(self.latent.cfg)(
                     **{
@@ -160,7 +173,11 @@ class Sigil:
         self.coarse: Optional[LatentStratum] = None
         ckc = self.cfg.latent_coarse_checkpoint
         if ckc and Path(ckc).exists():
-            self.coarse = LatentStratum(ckc, device=self.cfg.device)
+            self.coarse = LatentStratum(
+                ckc,
+                device=self.cfg.device,
+                master_key=derive_key(root, "sigil-learned-coarse") if root else None,
+            )
             if self.cfg.latent_coarse_strength:
                 self.coarse.cfg = type(self.coarse.cfg)(
                     **{
@@ -188,13 +205,16 @@ class Sigil:
     ) -> SigilEmbedResult:
         src = to_float01(image)
         if nonce is None:
-            rng = rng or np.random.default_rng()
             span = (
                 (1 << self.latent.cfg.nonce_bits)
                 if self.latent is not None
                 else (1 << 24)
             )
-            nonce = int(rng.integers(0, span))
+            nonce = (
+                int(rng.integers(0, span))
+                if rng is not None
+                else secrets.randbelow(span)
+            )
 
         cur = src
         if self.latent is not None:

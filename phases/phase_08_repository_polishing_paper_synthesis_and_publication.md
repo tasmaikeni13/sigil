@@ -1,5 +1,10 @@
 # Phase 08: Repository Polishing, Academic Paper Synthesis & Publication Readiness
 
+The checked-in manuscript PDF is a corrected historical pilot, not a
+publication-eligible Phase 05--07 result. Full publication artifacts require
+the private-key, manifest-backed, TPU arena and null audit gates. CPU smoke
+tests and a clean PDF build verify execution and typesetting only.
+
 ## 1. Objectives & Final Delivery Mandate
 
 Phase 08 is the final stage of the autonomous research lifecycle. Its mandate is to transform the entire repository, codebase, documentation, and academic manuscript into an exemplary, publication-ready open-source research artifact.

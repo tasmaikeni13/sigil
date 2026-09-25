@@ -2,6 +2,12 @@
 
 This directory defines the **autonomous, self-correcting, adaptive research framework** for SIGIL on the Google Cloud TPU v4-32 pod slice. It serves as the operational constitution for AI agents executing end-to-end scientific research, theoretical formalization, high-performance hardware acceleration, competitive evaluation, and publication-ready paper generation.
 
+The phase targets below are research acceptance goals, not claims that the
+checked-in artifacts have met them. The current clone has historical pilot
+results only. `run_all.sh --smoke-test` tests execution paths with procedural
+fixtures and never refreshes manuscript data. Publication generation requires
+an eligible private-key, provenance-verified full arena summary.
+
 ---
 
 ## 1. Operating Principles for Autonomous Research
@@ -53,7 +59,7 @@ flowchart TD
 ### Stage 3: Mathematical Reformulation
 - Derive the updated theorem, distribution, or estimator in closed form.
 - Document the updated equation in standard LaTeX notation.
-- Ensure the revised design preserves the core zero-false-alarm guarantee ($p \le 10^{-6}$) and continuous spatial invariance.
+- Preserve the private-key null bound at the configured operating point ($\alpha = 10^{-6}$); finite samples cannot guarantee zero observed alarms, and sampled image transformations are not exact continuous invariances.
 
 ### Stage 4: Formal Verification Gate
 - If the change affects foundational invariants (Theorems T1–T9), update the Lean 4 formalization in `lean/Sigil/`.
@@ -154,7 +160,7 @@ cd paper && pdflatex -interaction=nonstopmode sigil.tex && cd ..
 ## 7. Exit Criteria for the Autonomous Agent
 
 An agent may only mark research execution complete when **all** of the following conditions are satisfied:
-1. Every phase specification has passed its empirical verification criteria with zero failures.
+1. Every phase specification has passed its empirical verification criteria with zero failures; smoke checks alone do not satisfy this condition.
 2. SIGIL provably matches or exceeds all competitor baselines in TPR @ FPR $\le 10^{-6}$, geometric survival, and collusion resistance on the open-source corpus.
 3. Lean 4 formal proofs compile with zero warnings or `sorry` placeholders.
 4. All figures and LaTeX tables are refreshed from empirical data and embedded in `paper/sigil.tex`.

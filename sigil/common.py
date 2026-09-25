@@ -28,6 +28,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import math
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Tuple
@@ -68,15 +69,104 @@ def derive_key(master: bytes, label: str, *chunks: bytes) -> bytes:
     return mac.digest()
 
 
-def key_stream_rng(master: bytes, label: str, *chunks: bytes) -> np.random.Generator:
-    """A NumPy generator seeded by :func:`derive_key`.
+def deployment_key_from_env(name: str = "SIGIL_MASTER_KEY_HEX") -> bytes:
+    """Read the private 256-bit root required for publication-scale runs."""
+    value = os.environ.get(name, "")
+    try:
+        key = bytes.fromhex(value)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be 64 hexadecimal characters") from exc
+    if len(value) != 64 or len(key) != 32:
+        raise ValueError(f"{name} must be 64 hexadecimal characters")
+    return key
 
-    Modelling HMAC-SHA256 as a pseudo-random function, the stream is
-    computationally indistinguishable from uniform to anyone without ``master``.
-    That is the only assumption the exact null distributions rest on.
+
+class KeyStream:
+    """HMAC-SHA256 counter stream for cryptographic carrier draws.
+
+    A NumPy PRNG seeded by HMAC does not itself provide a secret-key PRF.
+    Each block here is an HMAC output under a domain-separated stream key.
     """
-    digest = derive_key(master, label, *chunks)
-    return np.random.default_rng(np.frombuffer(digest, dtype=np.uint32).copy())
+
+    def __init__(self, key: bytes):
+        self.key = key
+        self.counter = 0
+        self.buffer = b""
+
+    def _bytes(self, n: int) -> bytes:
+        while len(self.buffer) < n:
+            block = hmac.new(
+                self.key, self.counter.to_bytes(16, "little"), hashlib.sha256
+            ).digest()
+            self.buffer += block
+            self.counter += 1
+        out, self.buffer = self.buffer[:n], self.buffer[n:]
+        return out
+
+    def _below(self, bound: int) -> int:
+        if bound <= 0:
+            raise ValueError("bound must be positive")
+        nbytes = max(1, (bound.bit_length() + 7) // 8)
+        ceiling = 1 << (8 * nbytes)
+        cutoff = ceiling - ceiling % bound
+        while True:
+            value = int.from_bytes(self._bytes(nbytes), "little")
+            if value < cutoff:
+                return value % bound
+
+    def integers(self, low, high=None, size=None, dtype=np.int64):
+        if high is None:
+            low, high = 0, low
+        low, high = int(low), int(high)
+        if high <= low:
+            raise ValueError("high must exceed low")
+        shape = (
+            () if size is None else ((size,) if isinstance(size, int) else tuple(size))
+        )
+        values = [low + self._below(high - low) for _ in range(math.prod(shape))]
+        array = np.asarray(values, dtype=dtype).reshape(shape)
+        return array.item() if size is None else array
+
+    def uniform(self, low=0.0, high=1.0, size=None):
+        shape = (
+            () if size is None else ((size,) if isinstance(size, int) else tuple(size))
+        )
+        values = [
+            low
+            + (high - low) * (int.from_bytes(self._bytes(8), "little") >> 11) / 2**53
+            for _ in range(math.prod(shape))
+        ]
+        array = np.asarray(values, dtype=np.float64).reshape(shape)
+        return array.item() if size is None else array
+
+    def choice(self, n: int, size: int, replace: bool = False):
+        if replace:
+            return self.integers(0, n, size=size)
+        if size < 0 or size > n:
+            raise ValueError("sample size exceeds population")
+        pool = np.arange(n, dtype=np.int64)
+        for i in range(size):
+            j = i + self._below(n - i)
+            pool[i], pool[j] = pool[j], pool[i]
+        return pool[:size]
+
+
+def key_stream_rng(master: bytes, label: str, *chunks: bytes) -> KeyStream:
+    """Return a domain-separated cryptographic random stream."""
+    return KeyStream(derive_key(master, label, *chunks))
+
+
+def experiment_nonce(master: bytes, image_id: str, seed: int, bits: int) -> int:
+    """Reproducible private nonce for a named experimental sample."""
+    if not 1 <= bits <= 63:
+        raise ValueError("nonce bit width must be in [1, 63]")
+    digest = derive_key(
+        master,
+        "experiment-nonce",
+        image_id.encode("utf-8"),
+        int(seed).to_bytes(8, "little", signed=True),
+    )
+    return int.from_bytes(digest[:8], "little") % (1 << bits)
 
 
 # ---------------------------------------------------------------------------
@@ -332,6 +422,9 @@ __all__ = [
     "canonical_shape",
     "frequency_grid",
     "derive_key",
+    "deployment_key_from_env",
+    "experiment_nonce",
+    "KeyStream",
     "key_stream_rng",
     "list_images",
     "load_image",

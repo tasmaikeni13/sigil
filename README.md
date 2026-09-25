@@ -15,25 +15,30 @@ a weighted Bonferroni rule. The repository also includes a Lean 4
 formalization of the statistical and invariance arguments, the attack suite,
 and the scripts used to generate the paper's tables and figures.
 
-> **Status:** research prototype. The analytic stratum runs without a learned
-> checkpoint. The learned stratum requires trained weights, and the complete
-> evaluation requires local image data, model downloads, and a Google Cloud TPU v4
-> environment. The reported measurements are not a production guarantee.
+> **Status:** research prototype. The checked-in measurements predate the
+> private-key, verified-corpus publication protocol and are not publication
+> evidence. The complete evaluation still requires licensed image sources,
+> trained weights, model downloads, and a Google Cloud TPU v4 environment.
 
 ## Results at a glance
 
-The checked-in report summarizes one 80-image arena at operating point
+The checked-in report summarizes a historical 80-image arena at operating point
 `alpha = 1e-6`. An attack is *admissible* when it preserves PSNR >= 24 dB and
 SSIM >= 0.70; geometric and global photometric edits are included by
 construction because pixel metrics do not describe their visual cost.
 
 | System | Embedding PSNR | Embedding SSIM | Clean TPR | Unmarked FPR | Mean TPR on admissible attacks | Worst admissible TPR |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| SIGIL | 31.6 dB | 0.807 | 100% | 0.0% | 96.5% | 2% |
+| SIGIL | 31.7 dB | 0.773 | 100% | 0.0% | 95.9% | 2.5% |
 | SynthID-style | 31.3 dB | 0.812 | 100% | 0.0% | 66.3% | 0% |
-| StableSig-style | 32.0 dB | 0.785 | 100% | 0.0% | 95.1% | 2% |
+| StableSig-style | 32.1 dB | 0.787 | 100% | 0.0% | 95.1% | 2.5% |
 
 These values are a single reported run, not a claim of universal performance.
+The current full arena requires at least 200 provenance-verified images,
+PSNR >= 42 dB and SSIM >= 0.985 for every embed, a private 256-bit key,
+all three systems and the full attack catalogue. A separate 100,000-image
+null audit remains pending; zero alarms in a small sample do not establish a
+measured false-positive rate of $10^{-6}$.
 See the full [attack-survival report](results/SURVIVAL.md), the
 [two-stratum ablation](results/ABLATION.md), and the machine-readable files in
 `results/` for the evaluation scope and per-attack rates.
@@ -127,30 +132,30 @@ also provide `latent_coarse_checkpoint` and matching budget weights.
 
 ## Reproducing the paper
 
-The full pipeline expects these inputs outside the source tree:
-
-- DIV2K images under `data/div2k/`;
-- the photographic evaluation images, supplied through the `PHOTO_SOURCE`
-  environment variable or placed under `data/corpus/photo/`;
-- optional synthetic images under `data/corpus/synthetic/`;
-- a Google Cloud TPU v4 accelerator for learned training and detection.
+The full pipeline expects a source manifest with at least 224 distinct,
+license-declared images (200 evaluated plus 24 disjoint codebook references),
+a separate set of at least 100,000 distinct null images, a private 32-byte key,
+the reverse-SynthID source at `../reverse-SynthID/`, and a Google Cloud TPU v4
+accelerator. The source manifest is a JSON list of objects with `path` (relative
+to the manifest), `source`, `license`, and `sha256` fields; full ingestion checks
+the declared license, image integrity, and checksum before writing outputs.
 
 The `images/` directory contains dataset documentation and metadata, not a
 license grant for redistributing image files. Read
 [`images/lite/TERMS.md`](images/lite/TERMS.md) before downloading or sharing
 the associated data.
 
-Run the complete pipeline from the repository root in a Bash-compatible shell:
+Run a fast, isolated CPU smoke check first:
 
 ```bash
-export PHOTO_SOURCE=/path/to/photographs
-LIMIT=20 STEPS=12000 bash run_all.sh
+bash run_all.sh --smoke-test
 ```
 
-`run_all.sh` builds the corpus, calibrates content anchors, trains the learned
-stratum, runs the theory checks and attack benchmarks, writes figures and
-tables, builds the Lean project, and compiles the paper. Long-running stages
-write to `results/` as they run, so individual scripts can be rerun directly.
+It writes only ignored `data/smoke_*` and `results/smoke/` artifacts and never
+regenerates the paper. For the production pipeline, set `SOURCE_MANIFEST`,
+`NULL_CORPUS`, and `SIGIL_MASTER_KEY_HEX` securely, agree on the computational
+budget, then run `LIMIT=200 STEPS=12000 bash run_all.sh`. The script refuses
+smaller publication runs and does not substitute procedural fixtures.
 
 Useful checks and smaller pipeline stages are:
 
@@ -159,9 +164,19 @@ python -m ruff check sigil scripts
 python -m ruff format --check sigil scripts
 python -m compileall -q sigil scripts
 python scripts/theory_checks.py --limit 40
-python scripts/benchmark.py --limit 20
-python scripts/figures.py
-python scripts/make_tables.py
+python scripts/benchmark.py --smoke-test --device cpu \
+  --corpus data/smoke_corpus/natural --checkpoint data/smoke_checkpoints/latent.pt
+python scripts/figures.py --allow-demo --min-arena-images 1 --out data/demo_figures \
+  --csv results/smoke/benchmark.csv --summary results/smoke/summary.json \
+  --arena results/smoke/arena.csv --arena-summary results/smoke/arena_summary.json \
+  --theory results/smoke/theory_checks.json --fpr results/smoke/fpr_study.json \
+  --device cpu \
+  --checkpoint data/smoke_checkpoints/latent.pt
+python scripts/make_tables.py --allow-demo --min-arena-images 1 \
+  --summary results/smoke/summary.json --arena results/smoke/arena_summary.json \
+  --theory results/smoke/theory_checks.json \
+  --fpr results/smoke/fpr_study.json \
+  --calib results/smoke/descriptor_calibration.json --out data/demo_tables
 ```
 
 The benchmark, figures, and table commands require the corresponding corpus
@@ -180,9 +195,8 @@ Build the formal proofs and manuscript separately with:
 (cd paper && latexmk -pdf -interaction=nonstopmode sigil.tex)
 ```
 
-The reverse-SynthID adapter is optional. If the external project is available,
-place it beside this repository at `../reverse-SynthID/`; otherwise the arena
-skips those reference attacks.
+The reverse-SynthID adapter is optional only for smoke diagnostics. The full
+arena requires it and fails rather than silently dropping those attacks.
 
 ## Interpreting the results
 

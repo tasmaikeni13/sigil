@@ -77,8 +77,8 @@ lemma prod_exp_le (a : Fin n → ℝ) (hnorm : ∑ i, a i ^ 2 = 1) (t : ℝ) :
           exact Finset.sum_congr rfl fun i _ => by ring
         rw [this, hnorm, mul_one]
 
-/-- **The exact null.**  For any evidence vector the detector could possibly
-read, the fraction of keys on which the statistic reaches `t` is at most
+/-- **Distribution-free null bound.** For a unit-norm evidence vector,
+the fraction of keys on which the statistic reaches `t` is at most
 `exp (-t²/2)`.
 
 Nothing is assumed about the image: the bound holds for every weight vector, at

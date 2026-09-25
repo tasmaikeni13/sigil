@@ -28,7 +28,14 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from sigil import attacks as atk
-from sigil.common import list_images, load_image, quality, resize
+from sigil.common import (
+    deployment_key_from_env,
+    experiment_nonce,
+    list_images,
+    load_image,
+    quality,
+    resize,
+)
 from sigil.invariant import InvariantConfig
 from sigil.system import Sigil, SigilConfig
 
@@ -86,7 +93,9 @@ def main():
     ap.add_argument(
         "--analytic-alphas", type=float, nargs="+", default=[0.46, 0.34, 0.24]
     )
-    ap.add_argument("--min-ssim", type=float, default=0.90)
+    ap.add_argument("--min-psnr", type=float, default=42.0)
+    ap.add_argument("--min-ssim", type=float, default=0.988)
+    ap.add_argument("--seed", type=int, default=20260727)
     ap.add_argument("--out", default="results/operating_point.json")
     ap.add_argument("--smoke-test", action="store_true")
     ap.add_argument("--tpu", action="store_true")
@@ -101,12 +110,17 @@ def main():
         args.limit = 1
         args.latent_strengths = [0.045]
         args.analytic_alphas = [0.46]
+        if args.out == "results/operating_point.json":
+            args.out = "results/smoke/operating_point.json"
+    elif not Path(args.checkpoint).is_file():
+        ap.error("full calibration requires a trained learned checkpoint")
+    master_key = None if args.smoke_test else deployment_key_from_env()
 
     import torch
 
     torch.set_grad_enabled(False)
     paths = list_images(args.corpus)[: args.limit]
-    if not paths:
+    if not paths and args.smoke_test:
         for candidate in [
             "data/corpus/natural",
             "data/corpus",
@@ -116,9 +130,12 @@ def main():
                 paths = list_images(candidate)[: args.limit]
                 break
     images = [load_image(p, max_size=args.max_size) for p in paths]
+    if not images:
+        ap.error("empty calibration corpus")
     cases = build_cases(args.device)
     if args.smoke_test:
         cases = [c for c in cases if c[0] in ("clean", "jpeg50", "translate")]
+    must_hold = tuple(k for k in MUST_HOLD if k in {name for name, _ in cases})
 
     try:
         import lpips as _l
@@ -149,6 +166,7 @@ def main():
                     latent_checkpoint=args.checkpoint,
                     device=args.device,
                     alpha=args.alpha,
+                    master_key=master_key,
                 )
             )
             if sig.latent is not None:
@@ -156,8 +174,13 @@ def main():
                     **{**sig.latent.cfg.__dict__, "strength": ls}
                 )
             embs, qs = [], []
-            for img in images:
-                e = sig.embed(img)
+            for path, img in zip(paths, images):
+                nonce = (
+                    experiment_nonce(master_key, str(path.resolve()), args.seed, 20)
+                    if master_key
+                    else None
+                )
+                e = sig.embed(img, nonce=nonce)
                 embs.append((img, e))
                 q = quality(img, e.image)
                 qs.append((q.psnr, q.ssim, lp(img, e.image)))
@@ -177,6 +200,8 @@ def main():
                     try:
                         a = fn(e.image)
                     except Exception:
+                        if not args.smoke_test:
+                            raise
                         continue
                     d = sig.detect(a.image, expected_nonce=e.nonce)
                     det.append(d.detected)
@@ -193,31 +218,25 @@ def main():
                     }
             rows.append(row)
             held = sum(
-                1 for k in MUST_HOLD if row["attacks"].get(k, {}).get("rate", 0) >= 0.99
+                1 for k in must_hold if row["attacks"].get(k, {}).get("rate", 0) >= 0.99
             )
             print(
                 f"latent={ls:.3f} analytic={aa:.2f}  psnr={row['psnr']:5.2f} "
-                f"ssim={row['ssim']:.4f} must-hold {held}/{len(MUST_HOLD)}",
+                f"ssim={row['ssim']:.4f} must-hold {held}/{len(must_hold)}",
                 flush=True,
             )
             del sig
 
     # The quietest setting that still holds everything on the must-hold list.
     def holds(r):
-        return all(r["attacks"].get(k, {}).get("rate", 0) >= 0.99 for k in MUST_HOLD)
+        return (
+            r["psnr"] >= args.min_psnr
+            and r["ssim"] >= args.min_ssim
+            and all(r["attacks"].get(k, {}).get("rate", 0) >= 0.99 for k in must_hold)
+        )
 
     viable = [r for r in rows if holds(r)]
-    chosen = (
-        max(viable, key=lambda r: r["ssim"])
-        if viable
-        else max(
-            rows,
-            key=lambda r: (
-                sum(r["attacks"].get(k, {}).get("rate", 0) for k in MUST_HOLD),
-                r["ssim"],
-            ),
-        )
-    )
+    chosen = max(viable, key=lambda r: r["ssim"]) if viable else None
     out = {
         "chosen": {
             "latent_strength": chosen["latent_strength"],
@@ -225,19 +244,32 @@ def main():
             "psnr": chosen["psnr"],
             "ssim": chosen["ssim"],
             "lpips": chosen["lpips"],
-        },
-        "must_hold": list(MUST_HOLD),
+        }
+        if chosen
+        else None,
+        "eligible_for_paper": bool(chosen and not args.smoke_test),
+        "key_mode": "public-smoke" if args.smoke_test else "private",
+        "corpus": args.corpus,
+        "checkpoint": args.checkpoint if Path(args.checkpoint).is_file() else None,
+        "seed": args.seed,
+        "alpha": args.alpha,
+        "must_hold": list(must_hold),
         "n_viable": len(viable),
         "sweep": rows,
     }
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text(json.dumps(out, indent=2))
-    print(
-        f"\nchosen: latent_strength={chosen['latent_strength']} "
-        f"analytic_alpha={chosen['analytic_alpha']} "
-        f"psnr={chosen['psnr']:.2f} ssim={chosen['ssim']:.4f}"
-    )
+    if chosen:
+        print(
+            f"\nchosen: latent_strength={chosen['latent_strength']} "
+            f"analytic_alpha={chosen['analytic_alpha']} "
+            f"psnr={chosen['psnr']:.2f} ssim={chosen['ssim']:.4f}"
+        )
+    else:
+        print("no operating point satisfies fidelity and all must-hold attacks")
     print(f"wrote {args.out}")
+    if not args.smoke_test and chosen is None:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

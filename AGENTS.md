@@ -7,9 +7,9 @@ Operational manual and machine-readable instructions for AI coding agents workin
 ## 1. Project Overview & Architectural Mental Model
 
 SIGIL is a research codebase implementing a **stratified watermark for generated images**, combining:
-1. **SIGIL-A (Analytic Stratum)**: A spectral watermark operating in the log-magnitude spectrum of the canonical luminance grid. Provides exact continuous invariance to translation (via Fourier magnitude $|F|$), zero-phase radially symmetric filtering (via radial baseline normalization), global gain/brightness, and uniform rescaling.
+1. **SIGIL-A (Analytic Stratum)**: A spectral watermark operating in the log-magnitude spectrum of the canonical luminance grid. The ideal discrete DFT gives exact cyclic-translation invariance and exact invariance to positive gain constant on each radial bin group. Finite-grid filtering, clipping, and rescaling are approximate and must be checked empirically.
 2. **SIGIL-L / SIGIL-C (Learned Strata)**: Neural spatial watermarks with periodic spatial tiling (fine $32 \times 32$ and optional coarse $16 \times 16$ grids) resilient against heavy crops, high-frequency resamplings, and generative purification. Uses per-image nonces under a keyed GF(2) linear code, resolved in $O(2^k k)$ time via the Fast Walsh-Hadamard Transform (FWHT).
-3. **Distribution-Free Null Calibration**: Exact, non-asymptotic false-positive rate (FPR) guarantees derived from weighted Rademacher sums bounded by Hoeffding's inequality and exact binomial tails.
+3. **Distribution-Free Null Calibration**: Non-asymptotic false-positive upper bounds derived from nonzero weighted Rademacher evidence via Hoeffding's inequality and exact binomial tails; zero evidence receives p-value 1.
 4. **Multiplicity Accounting & Fusion**: Explicit Bonferroni correction for all hypothesis searches (spatial offsets, rotations, scales, reflections, and content anchors) fused across strata via weighted Bonferroni at target $\alpha = 10^{-6}$.
 5. **Codebook Collapse Defense**: Keyed content anchors (`spectral`, `histogram`, `nonce`) prevent cross-image carrier collusion; residual averaging over marked images yields zero signal.
 6. **Hardware Acceleration**: High-throughput fused resynchronisation scan kernels compiled natively for Google Cloud TPU v4 (v4-32 pod slice) via JAX/XLA, with transparent CPU (NumPy) fallback.
@@ -75,6 +75,7 @@ run_all.sh                  Full end-to-end reproduction pipeline
 - Python version: `3.10` or `3.11`.
 - Virtual environment: `.venv` located at repository root.
 - Path convention: Execute all commands and scripts from the **repository root** so `sigil` resolves as a top-level package.
+- Full experimental runs require a private 32-byte hex key in `SIGIL_MASTER_KEY_HEX`; public defaults are for tests and demonstrations only.
 
 ### Lean 4 Toolchain
 - Installed via `elan` under `~/.elan/bin/` (or `../.elan/bin/`).
@@ -125,7 +126,7 @@ Run CPU-compatible unit and smoke tests:
 Verify execution scripts across the pipeline without long-running compute:
 ```bash
 # Ingestion smoke test (>=64 validated images):
-./.venv/bin/python scripts/build_corpus.py --target-dir data/corpus --smoke-test
+./.venv/bin/python scripts/build_corpus.py --target-dir data/smoke_corpus --smoke-test
 
 # Geometric rotation and crop sweep on TPU:
 TPU_CHIPS_PER_HOST_BOUNDS="2,2,1" TPU_HOST_BOUNDS="1,1,1" ./.venv/bin/python scripts/geometry_frontier.py --tpu --trials 2
@@ -170,6 +171,10 @@ Regenerate tables, figures, and compile the manuscript:
 ./.venv/bin/python scripts/figures.py
 (cd paper && pdflatex -interaction=nonstopmode sigil.tex)
 ```
+The generators refuse old or smoke arena/benchmark summaries and incomplete
+null audits by default.
+For diagnostic output only, use `--allow-demo --min-arena-images 1` with
+an output directory outside `paper/tables` or `results/figures`.
 
 ---
 
@@ -210,6 +215,7 @@ Regenerate tables, figures, and compile the manuscript:
 
 ### NEVER:
 - **NEVER** commit private image corpora (`data/corpus/`), raw image downloads, or synthetic datasets.
+- **NEVER** generate manuscript tables or figures from smoke or legacy public-key arena summaries as publication evidence.
 - **NEVER** commit model weight files (`checkpoints/*.pt`) or Hugging Face cache files (`data/hf/`).
 - **NEVER** weaken or bypass Bonferroni multiplicity penalties to artificially lower p-values.
 - **NEVER** hardcode static codebooks or disable per-image nonce derivation.

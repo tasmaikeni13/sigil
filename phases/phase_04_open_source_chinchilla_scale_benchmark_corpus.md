@@ -1,5 +1,11 @@
 # Phase 04: Open-Source Benchmark Corpus Ingestion & Scaling Protocol
 
+Full ingestion requires `scripts/build_corpus.py --source-manifest PATH`, with
+each entry specifying a local image path, source, approved license, and SHA-256.
+All entries are checked before output is written. The `--smoke-test` mode uses
+procedural and repository fixtures, labels them non-publishable, and writes its
+manifest beside the chosen target directory. It is not an open-source corpus.
+
 ## 1. The "Chinchilla" Scaling Philosophy for Watermarking
 
 In modern machine learning, verifying that a novel neural architecture or optimizer represents a genuine breakthrough rather than an empirical artifact requires scaling rigor: for example, training a 125M parameter model on 2.5B tokens (the Chinchilla-optimal compute frontier) proves convergence, generalization, and stability under load.
@@ -9,20 +15,22 @@ In digital watermarking and provenance verification, **the exact equivalent scal
 - Overfitting to a narrow image distribution (e.g., synthetic diffusion generations with characteristic high-frequency spectral artifacts) creates an illusion of robustness that collapses in the wild.
 - A true scientific validation requires a **large-scale, diverse, open-source corpus** evaluated across thousands of image-attack pairs.
 
-Phase 04 establishes this benchmark dataset using strictly open-source, commercially unencumbered images, automated multi-resolution normalization, and perceptual baseline recording.
+Phase 04 specifies this benchmark dataset. The current ingester verifies local, license-declared source images and records checksums; it does not download images, build resolution pyramids, or measure LPIPS. Those remain future corpus-work items.
 
 ---
 
 ## 2. Dataset Selection & Open-Source Lineage
 
-The evaluation corpus is constructed exclusively from open-source repositories under CC-BY 2.0/4.0, CC0, or Apache 2.0 licenses:
+The evaluation corpus is constructed from individually documented images with
+an allowed license and matching source checksum. Repository or collection
+names alone are not evidence of a particular image's license:
 
 | Corpus Component | Source / Open License | Target Count | Primary Evaluation Purpose |
 | :--- | :--- | :--- | :--- |
-| **Natural Photography** | COCO Val 2017 (CC-BY 2.0) | $1,000$ images | Real-world scenes, high dynamic range, varied textures, cluttered backgrounds |
-| **High-Detail Scenery** | OpenImages / Unsplash Open Sample (CC0) | $500$ images | High-frequency detail (foliage, architectural edges, water ripples) |
-| **Synthesized Generative**| LAION-Aesthetics Open Subset (CC0) | $500$ images | Diffusion-generated latents, smooth gradients, generative artifacts |
-| **Extreme Dynamic Range**| Wikimedia Commons Featured Natural (CC0) | $500$ images | Low-light, high-contrast, and monochrome edge cases |
+| **Natural Photography** | Individually licensed photographic images | $1,000$ images | Real-world scenes, high dynamic range, varied textures, cluttered backgrounds |
+| **High-Detail Scenery** | Individually licensed high-detail images | $500$ images | High-frequency detail (foliage, architectural edges, water ripples) |
+| **Synthesized Generative**| Individually licensed generated images | $500$ images | Diffusion-generated latents, smooth gradients, generative artifacts |
+| **Extreme Dynamic Range**| Individually licensed high-contrast images | $500$ images | Low-light, high-contrast, and monochrome edge cases |
 | **Statistical Null Suite**| Random Natural Unwatermarked Crops | $100,000$ crops | Monte Carlo empirical false-alarm verification at $\alpha = 10^{-6}$ |
 
 ---
@@ -32,19 +40,16 @@ The evaluation corpus is constructed exclusively from open-source repositories u
 The agent manages ingestion via an automated, fault-tolerant script (`scripts/build_corpus.py`):
 
 ```bash
-# Automated ingestion into local data directory
+# Manifest-backed ingestion into local data directory
 .venv/bin/python3 scripts/build_corpus.py \
     --target-dir data/corpus \
-    --coco-count 1000 \
-    --unsplash-count 500 \
-    --laion-count 500 \
-    --workers 8
+    --source-manifest /path/to/sources.json
 ```
 
 ### Preprocessing Specifications
 1. **Resolution Normalization**:
-   - Primary standard: $512 \times 512$ bicubic center-crop (matching the canonical detector grid).
-   - High-resolution secondary standard: $768 \times 768$ and $1024 \times 1024$ multi-scale pyramids to evaluate downsampling resilience.
+   - Current ingestion preserves native aspect ratio and caps the longest side at $1024$ pixels. The detector later maps images to its canonical grid.
+   - Explicit $512$, $768$, and $1024$ multi-scale pyramids remain an evaluation target.
 2. **Color Space & Channel Hygiene**:
    - Discard alpha channels; convert all images to 3-channel 8-bit sRGB (`RGB`, float32 range $[0.0, 1.0]$).
    - Reject degenerate images (standard deviation across pixels $\sigma < 0.02$ or single solid color).
@@ -58,7 +63,7 @@ The agent manages ingestion via an automated, fault-tolerant script (`scripts/bu
 
 Before applying watermarks or attacks, the pipeline computes and records the unwatermarked baseline perceptual statistics:
 - **Spatial Frequency Content**: Laplacian variance and discrete Fourier spectral slope $\beta$ where $S(f) \propto 1/f^\beta$.
-- **Perceptual Metrics**: Baseline PSNR, SSIM, and LPIPS across resolution tiers.
+- **Perceptual Metrics**: PSNR and SSIM are measured in benchmark runs; LPIPS and resolution-tier baselines are not currently produced by ingestion.
 
 ---
 
@@ -66,19 +71,15 @@ Before applying watermarks or attacks, the pipeline computes and records the unw
 
 If dataset ingestion or preparation encounters failures, the agent must autonomously remediate:
 
-### Failure Mode 1: Remote HTTP 403/429 Rate-Limiting or Broken URL
-- **Diagnosis**: Upstream CDN or mirror endpoint has throttled requests or shifted URLs.
-- **Agent Action**:
-  1. Catch HTTP error in `scripts/build_corpus.py`.
-  2. Fall back automatically to backup mirror endpoints (e.g., HuggingFace Datasets API mirrors for COCO val2017: `datasets.load_dataset('detection-datasets/coco', split='val')`).
-  3. Verify downloaded bytes against SHA-256 checksums.
+### Failure Mode 1: Missing or changed local source
+- **Diagnosis**: A manifest path is absent or its bytes no longer match the declared SHA-256.
+- **Action**: Stop before writing output and require a corrected source or manifest. The ingester does not fetch remote mirrors.
 
 ### Failure Mode 2: Corrupted Image File or Truncated JPEG
 - **Diagnosis**: Download stream terminated prematurely, resulting in partial JPEG headers.
 - **Agent Action**:
-  1. Open each image using PIL and OpenCV in a validation try-catch block.
-  2. If `Image.verify()` raises `UnidentifiedImageError` or `IOError`, immediately delete the corrupted file.
-  3. Increment counter and fetch the next available sample from the manifest.
+  1. Verify each source with PIL before writing output.
+  2. On an invalid source, stop and report the path; do not delete source data or silently replace the sample.
 
 ### Failure Mode 3: Dynamic Range Degeneracy (Near-Black or Blank Images)
 - **Diagnosis**: Image contains mostly solid color or watermarks fail to embed due to zero gradient energy.
@@ -113,6 +114,6 @@ assert len(imgs) >= 50, 'Corpus below minimum test size'
 
 ### Acceptance Criteria
 - [ ] Ingestion script executes with 0 fatal errors.
-- [ ] Minimum evaluation corpus of open-source images downloaded and SHA-256 verified.
+- [ ] Full corpus sources are license-declared and SHA-256 verified; the smoke corpus is explicitly ineligible.
 - [ ] All images verified valid 3-channel RGB without corrupt headers.
-- [ ] Manifest file `data/corpus_manifest.json` written and intact.
+- [ ] Manifest beside the chosen target directory is written and intact (`data/corpus_manifest.json` for the default full target).

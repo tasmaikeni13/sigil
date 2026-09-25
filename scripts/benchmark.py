@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import math
 import sys
@@ -249,18 +250,17 @@ def admissible(
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument(
-        "--corpus", nargs="+", default=["data/corpus/natural", "data/corpus/synthetic"]
-    )
-    ap.add_argument("--limit", type=int, default=40)
+    ap.add_argument("--corpus", nargs="+", default=["data/corpus/natural"])
+    ap.add_argument("--corpus-manifest", default="data/corpus_manifest.json")
+    ap.add_argument("--limit", type=int, default=200)
     ap.add_argument("--max-size", type=int, default=1024)
     ap.add_argument("--out", default="results/benchmark.csv")
     ap.add_argument("--summary", default="results/summary.json")
     ap.add_argument("--checkpoint", default="checkpoints/latent.pt")
     ap.add_argument("--device", default="tpu")
     ap.add_argument("--alpha", type=float, default=1e-6)
-    ap.add_argument("--min-psnr", type=float, default=24.0)
-    ap.add_argument("--min-ssim", type=float, default=0.70)
+    ap.add_argument("--min-psnr", type=float, default=42.0)
+    ap.add_argument("--min-ssim", type=float, default=0.985)
     ap.add_argument("--no-heavy", action="store_true", help="skip generative attacks")
     ap.add_argument("--codebook-refs", type=int, default=24)
     ap.add_argument("--seed", type=int, default=20260727)
@@ -276,9 +276,22 @@ def main():
         args.codebook_refs = min(args.codebook_refs, 2)
         args.no_heavy = True
         if args.out == "results/benchmark.csv":
-            args.out = "results/benchmark_smoke.csv"
+            args.out = "results/smoke/benchmark.csv"
         if args.summary == "results/summary.json":
-            args.summary = "results/summary_smoke.json"
+            args.summary = "results/smoke/summary.json"
+    elif not Path(args.checkpoint).is_file():
+        ap.error("full benchmark requires a trained learned checkpoint")
+    elif args.limit < 200 or args.no_heavy or args.codebook_refs < 2:
+        ap.error("full benchmark requires 200 images and heavy/codebook attacks")
+    if not args.smoke_test:
+        from sigil.backend import tpu_available
+
+        if not args.device.startswith("tpu") or not tpu_available():
+            ap.error("full benchmark requires an attached TPU scanner")
+
+    from sigil.common import deployment_key_from_env, derive_key, experiment_nonce
+
+    master_key = None if args.smoke_test else deployment_key_from_env()
 
     heavy = not args.no_heavy
     cfg = SigilConfig(
@@ -286,6 +299,7 @@ def main():
         latent_checkpoint=args.checkpoint,
         device=args.device,
         alpha=args.alpha,
+        master_key=master_key,
     )
     sigil = Sigil(cfg)
     if args.smoke_test and sigil.latent is not None:
@@ -303,21 +317,40 @@ def main():
         )
     )
 
-    paths: List[Path] = []
+    all_paths: List[Path] = []
     for root in args.corpus:
-        paths.extend(list_images(root)[: args.limit])
+        all_paths.extend(list_images(root))
+    paths = all_paths[: args.limit]
     if not paths:
         raise SystemExit("empty corpus")
+    if not args.smoke_test:
+        from scripts.arena import verify_arena_corpus
+
+        if len(all_paths) < args.limit + args.codebook_refs:
+            ap.error("full benchmark requires disjoint codebook reference images")
+        reference_paths = all_paths[args.limit : args.limit + args.codebook_refs]
+        checked_paths = paths + reference_paths
+        if len({str(p.resolve()) for p in checked_paths}) != len(checked_paths):
+            ap.error("benchmark and codebook references must be disjoint")
+        verify_arena_corpus([str(p) for p in checked_paths], Path(args.corpus_manifest))
+    else:
+        reference_paths = paths[: args.codebook_refs]
     rng = np.random.default_rng(args.seed)
 
-    ref_paths = paths[: args.codebook_refs]
     print(
-        f"building codebook from {len(ref_paths)} independently marked references ..."
+        f"building codebook from {len(reference_paths)} independently marked references ..."
     )
-    refs = [load_image(p, max_size=512) for p in ref_paths]
+    refs = [load_image(p, max_size=512) for p in reference_paths]
 
     def embed_only(img):
-        return sigil.embed(img, rng=rng).image
+        nonce = (
+            experiment_nonce(
+                master_key, hashlib.sha256(img.tobytes()).hexdigest(), args.seed, 20
+            )
+            if master_key
+            else None
+        )
+        return sigil.embed(img, nonce=nonce, rng=rng).image
 
     codebook = atk.build_codebook(embed_only, refs, canon=512)
     print(
@@ -411,6 +444,7 @@ def main():
         latent_checkpoint=None,
         device=args.device,
         alpha=args.alpha,
+        master_key=derive_key(master_key, "wrong-key") if master_key else None,
     )
     wrong = Sigil(wrong_cfg)
 
@@ -418,7 +452,16 @@ def main():
     t0 = time.time()
     for i, p in enumerate(paths):
         img = load_image(p, max_size=args.max_size)
-        emb = sigil.embed(img, rng=rng)
+        nonce = (
+            experiment_nonce(master_key, str(p.resolve()), args.seed, 20)
+            if master_key
+            else None
+        )
+        emb = sigil.embed(img, nonce=nonce, rng=rng)
+        if not args.smoke_test and (
+            emb.psnr < args.min_psnr or emb.ssim < args.min_ssim
+        ):
+            raise ValueError(f"embedding fails fidelity on {p}")
         base = {
             "image": p.name,
             "corpus": p.parent.name,
@@ -462,13 +505,20 @@ def main():
         # hold.  If the detector fires here it is reacting to the act of
         # embedding rather than to the key, and every positive is meaningless.
         record(
-            "wrong_key", "none", "", wrong.embed(img, rng=rng).image, float("inf"), 1.0
+            "wrong_key",
+            "none",
+            "",
+            wrong.embed(img, nonce=nonce, rng=rng).image,
+            float("inf"),
+            1.0,
         )
 
         for name, family, fn in catalogue:
             try:
                 r = fn(emb.image)
             except Exception as exc:
+                if not args.smoke_test:
+                    raise RuntimeError(f"{name} failed on {p}") from exc
                 rows.append(
                     dict(
                         base,
@@ -494,6 +544,8 @@ def main():
                         device=args.device,
                     )
                 except Exception as exc:
+                    if not args.smoke_test:
+                        raise RuntimeError(f"PGD eps={eps} failed on {p}") from exc
                     rows.append(
                         dict(
                             base,
@@ -531,10 +583,22 @@ def main():
 
     import pandas as pd
 
+    from sigil.backend import tpu_available
+
     df = pd.DataFrame(rows)
     summary = {
         "n_images": len(paths),
         "alpha": args.alpha,
+        "seed": args.seed,
+        "corpus": args.corpus,
+        "checkpoint": args.checkpoint if Path(args.checkpoint).is_file() else None,
+        "key_mode": "public-smoke" if args.smoke_test else "private",
+        "requested_device": args.device,
+        "scanner_backend": (
+            "tpu" if args.device.startswith("tpu") and tpu_available() else "cpu"
+        ),
+        "corpus_manifest": None if args.smoke_test else args.corpus_manifest,
+        "eligible_for_paper": bool(not args.smoke_test and len(paths) >= 200),
         "quality_budget": {"min_psnr": args.min_psnr, "min_ssim": args.min_ssim},
         "embed": {
             "psnr_mean": float(df["embed_psnr"].mean()),
@@ -583,6 +647,15 @@ def main():
                 if not v.isna().all():
                     e[key] = float(v.mean())
         summary["conditions"][cond] = e
+
+    summary["attack_conditions"] = sum(
+        name.startswith("attack/") for name in summary["conditions"]
+    )
+    summary["eligible_for_paper"] = bool(
+        summary["eligible_for_paper"] and summary["attack_conditions"] >= 30
+    )
+    if not args.smoke_test and not summary["eligible_for_paper"]:
+        raise ValueError("benchmark lacks 30 complete attack conditions")
 
     Path(args.summary).write_text(json.dumps(summary, indent=2))
     print(f"wrote {args.summary}")

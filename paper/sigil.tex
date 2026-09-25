@@ -86,43 +86,40 @@ single true-positive rate. That framing hides the two things that decide whether
 a provenance mark is usable: what its false-positive rate actually is, and which
 attacks it is structurally unable to survive. \sigil{} is built around both.
 
-The detector's null distribution is not fitted. Every statistic \sigil{} reports
-is a keyed Rademacher sum, so its tail is bounded exactly by Hoeffding's
-inequality for every image, every finite carrier count, and no distributional
-assumption at all; the searches the detector performs over anchors, scales,
+The detector's null distribution is not fitted. Each keyed correlation has a
+finite-sample Hoeffding upper bound under the private-key null, without an image
+distribution model; the searches the detector performs over anchors, scales,
 rotations and nonces are charged for explicitly --- including the refinement
 the detector opens around whichever hypothesis the data selects --- and the
 strata are combined by a weighted Bonferroni rule that is valid under arbitrary
 dependence. The
-false-positive rate is therefore a number the operator sets rather than a number
-the experiment measures. The core of that argument --- the exact tail, the
+false-positive upper bound is therefore set rather than fitted to an image
+corpus. The core of that argument --- the null bound, the
 multiplicity charge, the fusion, and the two invariances the analytic stratum
 rests on --- is machine-checked in Lean~4 against Mathlib.
 
 Robustness comes from stratification rather than from a single clever transform.
 An analytic stratum places a multiplicative mark in the ring-normalised
-log-magnitude of a canonical spectrum, which makes it exactly invariant to
-translation, to any zero-phase radially symmetric filter, and to global gain, and
-gives it high payload capacity at negligible cost. A learned stratum is trained
+log-magnitude of a canonical spectrum. Exact invariance holds for discrete cyclic
+translation and positive gain constant on each discrete frequency ring;
+interpolated rescaling and ordinary image attacks are measured empirically.
+A learned stratum is trained
 with real variational autoencoders and diffusion regeneration inside its noise
 layer, together with a jointly-trained removal network and a white-box gradient
-attack, so it reads through exactly the transformation that erases every linear
-spectral mark. It is carried at two message-grid scales, which trade crop
+attack, with the aim of surviving transformations that can erase a linear
+spectral mark. It can be carried at two message-grid scales, which trade crop
 robustness against rotation robustness through a single parameter in opposite
 directions, so that fusing them covers a geometric range neither reaches alone.
-Carriers in every stratum are bound to the image --- by content
-descriptors and by a per-image nonce --- so an adversary who averages the
-residuals of an arbitrarily large corpus recovers little. Measured as the attack
+Carriers are bound to content descriptors or a per-image nonce, limiting
+cross-image averaging when those anchors remain diverse. Measured as the attack
 itself --- aggregate the residuals, rank the bins, take the top $K$ --- a
 static-carrier control surrenders $\sigilRecoveredStatic\%$ of its carrier set,
 while content-derived carriers yield $\sigilRecovered\%$ against a chance rate of
 $\sigilRecoveredChance\%$.
 
-Evaluated on \sigilNImages{} images across \sigilNAttacks{} attacks --- valuemetric,
-geometric, codebook and collusion, generative regeneration, white-box adaptive,
-and stacked pipelines --- under an explicit attacker quality budget, \sigil{}
-holds at a measured false-positive rate of $\sigilFPR\%$ while marking at
-$\sigilPSNR$\,dB PSNR and $\sigilSSIM$ SSIM.
+The checked-in tables document historical pilot measurements, not a completed
+publication-scale test. The current full protocol requires a private key, at
+least 200 verified source images, and a separate 100,000-image null audit.
 \end{abstract}
 
 \section{Introduction}
@@ -154,19 +151,19 @@ known weights, and
 \[
   \Pr\!\left[T \geq t\right] \leq e^{-t^{2}/2}
 \]
-holds exactly, for every image, at every finite carrier count, with no
+holds as a finite-sample upper bound for nonzero evidence at every carrier count, with no
 assumption whatsoever about image statistics. Searches are charged for by an
 explicit union bound and strata are combined by weighted Bonferroni. The result
-is a detector whose false-positive rate is a parameter rather than a measurement
+is a detector whose false-positive upper bound is set rather than fitted
 (\S\ref{sec:theory}).
 
 The second half of the design is about what no single mechanism can do. A mark
-that lives in a linear transform of the pixels can be made exactly invariant to
-translation, to radially symmetric filtering, and to contrast --- but a
+that lives in a linear transform of the pixels has exact ideal-grid invariances
+to cyclic translation and ringwise gain --- but a
 variational autoencoder round-trip rewrites the mid-band spectrum wholesale, and
 no imperceptible linear perturbation of that band survives it. A mark that a
-network is trained to read through such a round-trip survives it --- but the
-network has no invariance anyone can prove and no natural exact null. \sigil{}
+network can be trained to read through such a round-trip --- but the
+network has no comparable geometric invariance theorem. \sigil{}
 carries both and spends one false-positive budget across them
 (\S\ref{sec:architecture}).
 
@@ -184,23 +181,23 @@ does not depend on content at all (\S\ref{sec:anchors}).
 
 \paragraph{Contributions.}
 \begin{enumerate}[leftmargin=1.2em,itemsep=1pt,topsep=2pt]
-\item A watermark detector whose false-positive rate is exact, finite-sample and
-      distribution-free, including the cost of its own synchronisation search
+\item A watermark detector with a finite-sample, distribution-free false-positive bound,
+      including the cost of its own synchronisation search
       and of fusing several detectors (\S\ref{sec:theory}).
 \item A machine-checked development in Lean~4 of the four results the security
-      argument depends on: the exact null, the multiplicity charge, the fusion
+      argument depends on: the null bound, the multiplicity charge, the fusion
       rule, and the two invariances of the analytic stratum
       (\S\ref{sec:lean}).
 \item An analytic stratum in the ring-normalised log-magnitude domain that is
-      exactly invariant to translation, radially symmetric zero-phase filtering
-      and global gain, and that resynchronises crops and reflections by
+      invariant to cyclic translation and positive ringwise gain on the ideal
+      discrete grid, and that resynchronises crops and reflections by
       resampling a single spectrum rather than re-rendering the image
       (\S\ref{sec:analytic}).
 \item Multi-anchor content keying, including cross-stratum nonce anchoring, with
       measured diversity and per-attack stability for each anchor family
       (\S\ref{sec:anchors}).
 \item An evaluation protocol with an explicit attacker quality budget, a
-      wrong-key false-positive control, and \sigilNAttacks{} attacks spanning six
+      wrong-key false-positive control, and attacks spanning six
       families including white-box gradient removal against the deployed decoder
       (\S\ref{sec:experiments}).
 \end{enumerate}
@@ -288,13 +285,11 @@ pixels non-square for every non-square image, and an image-plane rotation then
 becomes a shear of the canonical spectrum rather than a rotation of it --- which
 destroys the resynchronisation the analytic stratum depends on.
 
-A stratum produces a canonical-grid luminance residual; the residual is resampled
-to $H\times W$ and added to the luminance channel, leaving chrominance untouched.
-Because every residual is band-limited well below the canonical Nyquist rate the
-resampling is faithful, and the immediate consequence is that a uniform rescale of
-the delivered image maps back onto the same canonical representation. Scale
-invariance is a property of the representation, not something the detector
-searches for.
+The analytic stratum produces a luminance residual, while the learned stratum
+produces an RGB residual. Each is resampled to native resolution before addition.
+Canonicalisation is approximately stable under resampling, with errors governed
+by interpolation, antialiasing, and clipping; it is not an exact discrete
+scale-invariance theorem.
 
 \subsection{The analytic stratum}
 \label{sec:analytic}
@@ -338,7 +333,7 @@ Per-bin evidence is soft-clipped at a robust multiple of its own median absolute
 deviation before \eqref{eq:stat}, which stops a handful of outlier bins ---
 spectral leakage from a specular highlight, a JPEG blocking harmonic --- from
 inflating the denominator. The clip is a function of the observed image only,
-never of the keyed signs, so the exact null of \S\ref{sec:theory} is untouched.
+never of the keyed signs, so the null bound of \S\ref{sec:theory} is untouched.
 
 \paragraph{Resynchronisation.} Rotation, crop and reflection act on the canonical
 spectrum as a rotation, a radial dilation and an axis flip. The detector does not
@@ -527,9 +522,9 @@ the positions leaves the signs uniform and independent of them, and both are
 independent of any image chosen without knowledge of the key.
 \end{assumption}
 
-\begin{theorem}[Exact null]
+\begin{theorem}[Distribution-free null bound]
 \label{thm:null}
-Let $z\in\R^{K}$ be any evidence vector computed from the image, and let
+Let $z\in\R^{K}\setminus\{0\}$ be an evidence vector computed from the image, and let
 $b\in\{\pm1\}^{K}$ be the keyed chips. Under Assumption~\ref{ass:prf} and the
 null hypothesis, for every $t\geq0$,
 \[
@@ -551,6 +546,9 @@ $\cosh u\leq e^{u^{2}/2}$ for all real $u$,
 $\prod_k\cosh(\lambda a_k)\leq e^{\lambda^{2}/2}$, and taking $\lambda=t$ gives
 $e^{-t^{2}/2}$.
 \end{proof}
+
+For $z=0$ the detector assigns $p=1$. The displayed tail inequality does not
+hold for $z=0$ and $t>0$, since the left event then has probability one.
 
 \begin{remark}
 Nothing here is asymptotic and nothing is assumed about the image. The bound
@@ -621,7 +619,8 @@ $\sum_i w_i\alpha\leq\alpha$ by the union bound and validity of each $p_i$.
 \label{thm:translation}
 For any shift $d$, $|\mathcal{F}(x(\cdot-d))(f)| = |\mathcal{F}x(f)|$ for every
 $f$. Consequently the evidence \eqref{eq:excess} and the statistic
-\eqref{eq:stat} are exactly invariant to translation.
+\eqref{eq:stat} are exactly invariant on the ideal discrete cyclic grid,
+before clipping or interpolation.
 \end{theorem}
 \begin{proof}
 $\mathcal{F}(x(\cdot-d))(f) = \chi(-\langle d,f\rangle)\,\mathcal{F}x(f)$ for the
@@ -641,9 +640,9 @@ shift.
 \end{proof}
 
 \begin{corollary}
-Gaussian blur, unsharp masking, resampling roll-off, global contrast change and
-the smooth radial envelope of a JPEG quantisation table are all of this form, and
-the analytic statistic is invariant to the whole family at once.
+Ideal filters with a positive gain constant on each discrete ring have this
+property. Gaussian blur, sharpening, resampling, and JPEG are only approximate
+instances after finite-grid sampling and implementation effects.
 \end{corollary}
 
 \begin{proposition}[Codebook collapse]
@@ -684,7 +683,9 @@ Measured anchor entropies are in Table~\ref{tab:anchors}.
  $t_s=\sqrt{2\log(|\mathcal{H}_s|/(w_s\alpha))}$, with
  $\sum_{s\in\mathcal{S}}w_s\leq1$. If the system fires when any active stratum
  fires, then its false-positive probability, over the choice of key, is at most
- $\alpha$ for every image, every attack and every adversary.
+ $\alpha$ for every null image independent of the private key, including after
+ key-independent attacks. Adaptive selection using a detector oracle is outside
+ this assumption.
 \end{theorem}
 \begin{proof}
  By Theorems~\ref{thm:null} and \ref{thm:mult}, stratum $s$ fires with
@@ -725,12 +726,12 @@ Lean name & Paper result \\
 \section{Experiments}
 \label{sec:experiments}
 
-\paragraph{Corpora.} Three, because the claim has three halves. A photographic
-corpus of \arenaNImages{} high-resolution images tests the mark as a
-signal-processing object across real content. A DIV2K split provides the
-standard image-processing reference. A synthetic corpus generated locally with
-SD-Turbo across a spread of subjects and styles tests the mark on the kind of
-image it is actually meant to carry, and carries no third-party rights.
+\paragraph{Corpus and status.} The checked-in arena artifacts are historical
+pilot runs: one summary covers a single image and another covers 80 images at a
+24\,dB/0.70 quality budget, with public demonstration keys. They do not satisfy
+the current 200-image, 42\,dB/0.985, private-key publication protocol. The
+figures and tables reproduced here must be read as diagnostics, not final
+evidence of superiority or a measured $10^{-6}$ false-positive rate.
 
 \paragraph{What it is measured against.} A watermark evaluated alone can only be
 compared to its own ablations, so two reference systems are implemented here and
@@ -758,22 +759,20 @@ baseline that inherits one of \sigil{}'s two learned residuals rather than their
 combined energy would lose part of the comparison to loudness. The baseline is
 therefore embedded at the amplitude the two residuals sum to --- they are
 roughly independent, so they add in quadrature --- and lands within a few tenths
-of a decibel of \sigil{}. On that footing the aggregate gap is small, $96.5\%$
-against $95.1\%$ mean detection over admissible attacks, because most attacks
-are survived comfortably by both. The aggregate is the wrong statistic. The
-difference is not spread thinly across the suite; it is concentrated exactly
-where the design says it should be:
+of a decibel of \sigil{}. In the 80-image pilot the mean detection rate over
+admissible attacks was $95.9\%$ versus $95.1\%$. This aggregate hides important
+failures and wins in both directions; the pilot does not establish superiority:
 
 \begin{center}\small
 \begin{tabular}{lrr}
 \toprule
 attack & fixed key & \sigil{} \\
 \midrule
-\texttt{rsid\_codebook\_maximum} & 2\% & 100\% \\
-\texttt{rsid\_stacked\_maximum} & 0\% & 94\% \\
-\texttt{purify\_r2} & 0\% & 62\% \\
-\texttt{img2img\_s0.3} & 21\% & 81\% \\
-\texttt{vae\_sdxl\_n0.2} & 51\% & 99\% \\
+\texttt{rsid\_v3\_maximum} & 2.5\% & 100\% \\
+\texttt{rsid\_v2\_maximum} & 0\% & 0\% \\
+\texttt{purify\_r2} & 0\% & 0\% \\
+\texttt{img2img\_s0.3} & 21.25\% & 1.25\% \\
+\texttt{vae\_sdxl\_n0.2} & 48.75\% & 10\% \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -941,8 +940,8 @@ learned grids.}
 \centering
 \includegraphics[width=0.92\linewidth]{../results/figures/fig03_strength_curves.pdf}
 \caption{Evidence against attack strength for four families, per stratum, with
-the operating point drawn. Degradation is graceful in every family; where a
-stratum crosses the line, the other is still above it.}
+the operating point drawn. Historical pilot curves show both complementary
+survival and conditions in which neither stratum remains above threshold.}
 \label{fig:curves}
 \end{figure*}
 
@@ -1043,20 +1042,20 @@ establish the noise-layer training recipe; the choice to put real autoencoders
 and a searching opponent inside that layer, rather than a fixed menu of
 differentiable approximations, is what \S\ref{sec:learned} adds. Regeneration
 attacks against watermarks, and the observation that a VAE round-trip rewrites
-exactly the band a spectral mark occupies, motivate the stratification. What we
-have not found elsewhere is the combination of an exact, search-corrected,
-distribution-free null with a machine-checked proof of it, and content-derived
+the band a spectral mark occupies, motivate the stratification. The design
+combines a search-corrected, distribution-free null upper bound with a
+machine-checked proof of it, and content-derived
 carriers as a stated defence against cross-image aggregation rather than an
 incidental property.
 
 \section{Conclusion}
 
 A watermark is a statistical claim, and a claim without a calibrated error rate
-is not evidence. \sigil{} makes the false-positive rate a design parameter,
+is not evidence. \sigil{} makes a false-positive upper bound a design parameter,
 charges honestly for every search and every fusion it performs, and proves the
-core of that argument in a proof assistant. Its robustness comes from carrying two
-marks that fail on disjoint attacks and spending one budget across them, and its
-resistance to cross-image aggregation comes from binding carriers to the image ---
-including to a nonce that no amount of clustering by appearance can recover.
+core of that argument in a proof assistant. Its intended robustness comes from
+carrying complementary marks and spending one budget across them. The historical
+pilot results do not meet the current fidelity or corpus-size gates; the full
+private-key comparison and independent null audit remain future work.
 
 \end{document}

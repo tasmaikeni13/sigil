@@ -16,6 +16,11 @@ from typing import Dict, List
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from scripts.publication import (
+    require_publishable_arena,
+    require_publishable_benchmark,
+    require_publishable_null_audit,
+)
 
 FAMILY_ORDER = [
     "valuemetric",
@@ -148,8 +153,8 @@ def tbl_theory(theory: Dict) -> str:
         rows.append(
             (
                 "T4",
-                "Exact null (Hoeffding)",
-                f"measured tail $\\leq$ bound at every $t$; worst ratio ${worst:.2f}$",
+                "Null upper bound (Hoeffding)",
+                f"worst observed tail/bound ratio ${worst:.2f}$",
             )
         )
     t5 = theory.get("T5_multiplicity", {})
@@ -183,8 +188,8 @@ def tbl_theory(theory: Dict) -> str:
             (
                 "T8",
                 "Fusion validity under dependence",
-                f"empirical FPR $\\leq \\alpha$ for every dependence tested; "
-                f"worst ratio ${worst:.2f}$",
+                f"worst observed FPR/nominal ratio ${worst:.2f}$ "
+                "(finite-sample variation)",
             )
         )
     t9 = theory.get("T9_nonce_null", {})
@@ -353,9 +358,27 @@ def main():
     ap.add_argument("--theory", default="results/theory_checks.json")
     ap.add_argument("--calib", default="results/descriptor_calibration.json")
     ap.add_argument("--arena", default="results/arena_summary.json")
+    ap.add_argument("--fpr", default="results/fpr_study.json")
     ap.add_argument("--out", default="paper/tables")
+    ap.add_argument("--allow-demo", action="store_true")
+    ap.add_argument("--min-arena-images", type=int, default=200)
     args = ap.parse_args()
+    if args.allow_demo and Path(args.out).resolve() == Path("paper/tables").resolve():
+        ap.error("demo tables require --out outside paper/tables")
 
+    try:
+        arena = require_publishable_arena(
+            args.arena, allow_demo=args.allow_demo, min_images=args.min_arena_images
+        )
+        require_publishable_benchmark(
+            args.summary,
+            arena,
+            allow_demo=args.allow_demo,
+            min_images=args.min_arena_images,
+        )
+        require_publishable_null_audit(args.fpr, arena, allow_demo=args.allow_demo)
+    except ValueError as exc:
+        ap.error(str(exc))
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     summary = (
@@ -378,9 +401,6 @@ def main():
         (out / "anchors.tex").write_text(tbl_anchors(theory, calib) + "\n")
     (out / "descriptor.tex").write_text(tbl_descriptor_stability(calib) + "\n")
 
-    arena = (
-        json.loads(Path(args.arena).read_text()) if Path(args.arena).exists() else {}
-    )
     if arena:
         (out / "arena.tex").write_text(tbl_arena(arena) + "\n")
         (out / "arena_families.tex").write_text(tbl_arena_families(arena) + "\n")

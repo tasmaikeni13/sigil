@@ -4,7 +4,7 @@
 
 The objective of Phase 01 is to establish the rigorous mathematical, statistical, and formal foundations of SIGIL, proving that its detection statistic and false-positive rate (FPR) guarantees match or strictly exceed all peer watermarking systems. 
 
-Unlike heuristic watermarks that rely on empirically fit Gaussian thresholds, SIGIL operates on an **exact, non-asymptotic combinatorial null distribution** governed by Rademacher sums. This phase establishes the formal comparison against competitors, validates the analytical bounds with extensive Monte Carlo simulations, verifies the theorems in Lean 4, and defines the autonomous self-correction loop for the agent.
+SIGIL uses a conservative, non-asymptotic Hoeffding bound for keyed Rademacher sums. This phase establishes the conditional null calculation, validates numerical checks, verifies theorems in Lean 4, and defines the self-correction loop. Competitive superiority remains an empirical target, not a consequence of the null theorem.
 
 ---
 
@@ -12,7 +12,7 @@ Unlike heuristic watermarks that rely on empirically fit Gaussian thresholds, SI
 
 | Watermarking System | Null Hypothesis Model | Multiplicity Control | Detector Statistic | False-Alarm Guarantee | Collusion Vulnerability |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **SIGIL (Ours)** | **Exact Rademacher Tail** $\sum_{i=1}^K s_i z_i$ ($s_i \in \{-1, +1\}$) | **Analytical Bonferroni** over searched transforms $M_{\text{geom}} \times M_{\text{nonce}}$ | Fused normalized projection $T = \frac{\langle \mathbf{s}, \mathbf{z} \rangle}{\|\mathbf{z}\|_2}$ | **Non-asymptotic, provable $\alpha \le 10^{-6}$** with zero empirical false alarms | **Resistant ($\mathcal{O}(1/\sqrt{N})$ phase coherence floor)** via per-image content carriers |
+| **SIGIL (Ours)** | **Hoeffding upper bound** for $\sum_{i=1}^K s_i z_i$ ($s_i \in \{-1, +1\}$) | **Bonferroni** over all searched hypotheses | Normalized keyed projection $T = \frac{\langle \mathbf{s}, \mathbf{z} \rangle}{\|\mathbf{z}\|_2}$ | Conditional private-key bound at $\alpha = 10^{-6}$; empirical rate requires separate measurement | Per-image content carriers; collusion performance requires measurement |
 | **SynthID (Google DeepMind)** | Asymptotic Gaussian approximation $\mathcal{N}(\mu, \sigma^2)$ | Heuristic post-hoc thresholding | Differential phase correlation at fixed spectral bins | Empirical only; susceptible to tail breakdown under heavy-tailed image spectra | **Critical ($\mathcal{O}(1)$ static codebook collapse)** across multiple images |
 | **Stable Signature (Meta)** | Empirical cosine similarity threshold | None (single key per generator) | Cosine similarity in latent extractor space | Unbounded tail risk under out-of-distribution latents | **Vulnerable to key leakage** via multi-image averaging |
 | **TrustMark / RivaGAN** | Softmax classification margin | Uncorrected peak detection | Cross-entropy logit margin | High false-positive rate under adversarial perturbations | Vulnerable to model extraction and feature subtraction |
@@ -31,27 +31,34 @@ SIGIL must demonstrate:
 Let $\mathbf{s} = (s_1, \dots, s_K) \in \{-1, +1\}^K$ be the pseudo-random carrier signs, independent of the image content feature vector $\mathbf{z} \in \mathbb{R}^K$. Under the null hypothesis $H_0$ that the image does not contain the watermark keyed by $\mathbf{s}$:
 $$T = \frac{\sum_{i=1}^K s_i z_i}{\sqrt{\sum_{i=1}^K z_i^2}}$$
 
-Conditioned on $\mathbf{z}$, $T$ is the sum of independent, zero-mean bounded random variables $X_i = s_i w_i$, where $w_i = z_i / \|\mathbf{z}\|_2$ and $\sum_{i=1}^K w_i^2 = 1$. The exact p-value is computed via the combinatorial recurrence of Rademacher sums:
+For nonzero $\mathbf{z}$, conditioned on $\mathbf{z}$, $T$ is the sum of independent, zero-mean bounded random variables $X_i = s_i w_i$, where $w_i = z_i / \|\mathbf{z}\|_2$ and $\sum_{i=1}^K w_i^2 = 1$. The combinatorial expression for its exact tail is:
 $$p(t) = \mathbb{P}_{H_0}(T \ge t) = 2^{-K} \sum_{\mathbf{s} \in \{-1, +1\}^K} \mathbf{1}\left(\sum_{i=1}^K s_i w_i \ge t\right)$$
+
+The implementation reports the conservative Hoeffding bound, not that exact
+combinatorial tail. When $\mathbf{z}=0$, it assigns $p=1$; the unit-norm theorem
+cannot be applied to zero evidence. The guarantee is over an independently
+chosen private key under the PRF assumption, not a deterministic promise for a
+fixed leaked key.
 
 ### 3.2 Non-Asymptotic Hoeffding & Chernoff Dominance
 By Hoeffding's inequality, for any unit vector $\mathbf{w}$ with $\|\mathbf{w}\|_2 = 1$:
-$$\mathbb{P}_{H_0}(T \ge t) \le \exp\left(-\frac{2 t^2}{\sum_{i=1}^K (2 w_i)^2 / 4}\right) = \exp\left(-\frac{t^2}{2}\right)$$
-The exact Rademacher tail is strictly tighter than the continuous Gaussian tail $\Phi(-t) \sim \frac{1}{\sqrt{2\pi}t}e^{-t^2/2}$ for all finite $K$ when weights are dispersed.
+$$\mathbb{P}_{H_0}(T \ge t) \le \exp\left(-\frac{2 t^2}{\sum_{i=1}^K (2 w_i)^2}\right) = \exp\left(-\frac{t^2}{2}\right)$$
+The bound is conservative. A finite Rademacher tail need not lie below the
+Gaussian tail at every threshold; no such ordering is assumed.
 
 ### 3.3 Multiplicity Control under Continuous Transformation Grids
 When the detector evaluates $M$ candidate geometric hypotheses (rotations $\theta \in \Theta$, scales $s \in \mathcal{S}$, translations, nonces $n \in \mathcal{N}$):
 $$T_{\max} = \max_{m \in \{1, \dots, M\}} T_m$$
 By Boole's inequality (Bonferroni bound), without assuming independence among geometric transforms:
 $$\mathbb{P}_{H_0}(T_{\max} \ge t) \le \min\left(1, \; M \cdot \mathbb{P}_{H_0}(T \ge t)\right)$$
-To ensure an overall family-wise error rate (FWER) $\le \alpha$, the detection threshold $\tau_\alpha$ is derived by solving:
-$$\mathbb{P}_{H_0}(T \ge \tau_\alpha) = \frac{\alpha}{M}$$
+To ensure an overall family-wise error rate (FWER) $\le \alpha$, choose a threshold $\tau_\alpha$ satisfying the conservative bound:
+$$M\exp(-\tau_\alpha^2/2) \le \alpha.$$
 
 ---
 
 ## 4. High-Precision Monte Carlo Verification Protocol
 
-To empirically prove the exactness of the null and absence of tail leakage:
+To audit the implementation and estimate tail behavior without claiming a finite-sample proof:
 1. **Trial Volume**: Run $N = 10^7$ independent trials under $H_0$ using synthetic noise and unwatermarked natural image spectra.
 2. **Extreme Quantile Validation**:
    - Compute empirical quantiles at $q = 10^{-2}, 10^{-3}, 10^{-4}, 10^{-5}, 10^{-6}$.
@@ -95,7 +102,7 @@ When an automated check fails during Phase 01, the agent must execute the follow
 
 ### Scenario C: Multiplicity Bound Too Conservative (Excessive Slack)
 1. **Diagnosis**: Nearby geometric grid angles exhibit near-perfect correlation ($\rho \approx 1.0$), making raw Bonferroni overly conservative.
-2. **Mathematical Modification**: Formulate an effective degrees-of-freedom multiplicity $M_{\text{eff}} < M$ via Slepian's inequality or Holm-Sidak step-down procedure, while formally maintaining provable FWER control. Update `sigil/stats.py`.
+2. **Mathematical Modification**: Retain the full Bonferroni charge for every evaluated hypothesis unless a replacement bound is separately proved for the actual dependent search and reflected in Lean. Correlation alone does not justify $M_{\text{eff}} < M$.
 
 ---
 

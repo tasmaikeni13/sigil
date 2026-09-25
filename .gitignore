@@ -8,6 +8,7 @@ __pycache__/
 htmlcov/
 data/
 checkpoints/*.pt
+checkpoints/**/*.pt
 lean/.lake/
 *.log
 paper/*.aux
@@ -16,3 +17,4 @@ paper/*.toc
 paper/*.fls
 paper/*.fdb_latexmk
 results/*_smoke.*
+results/smoke/

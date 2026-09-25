@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import math
 import os
@@ -45,8 +46,33 @@ os.environ.setdefault("MKL_NUM_THREADS", "2")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from sigil import attacks as atk
-from sigil.common import list_images, load_image
+from sigil.common import (
+    deployment_key_from_env,
+    derive_key,
+    experiment_nonce,
+    list_images,
+    load_image,
+)
 from sigil.invariant import InvariantConfig
+
+
+def verify_arena_corpus(paths: List[str], manifest_path: Path) -> None:
+    """Reject smoke fixtures and unrecorded or modified publication images."""
+    if not manifest_path.is_file():
+        raise ValueError(f"missing corpus manifest: {manifest_path}")
+    data = json.loads(manifest_path.read_text())
+    if not data.get("benchmark_eligible"):
+        raise ValueError("corpus manifest is not benchmark-eligible")
+    root = Path(data["target_dir"]).resolve()
+    entries = {str((root / e["file"]).resolve()): e for e in data["manifest"]}
+    for path in paths:
+        source = Path(path).resolve()
+        entry = entries.get(str(source))
+        if entry is None or not entry.get("benchmark_eligible"):
+            raise ValueError(f"image absent from eligible manifest: {source}")
+        if hashlib.sha256(source.read_bytes()).hexdigest() != entry["sha256"]:
+            raise ValueError(f"corpus image checksum changed: {source}")
+
 
 # ---------------------------------------------------------------------------
 # Attack catalogue
@@ -231,6 +257,7 @@ def _init(
     coarse_checkpoint: Optional[str] = None,
     coarse_strength: Optional[float] = None,
     smoke_test: bool = False,
+    master_key: Optional[bytes] = None,
 ):
     import torch
 
@@ -251,6 +278,7 @@ def _init(
             weights=tuple([1.0 / n_strata] * n_strata),
             device=device,
             alpha=alpha,
+            master_key=master_key,
         )
     )
     if latent_strength and sig.latent is not None:
@@ -293,10 +321,13 @@ def _init(
             latent_checkpoint=None,
             device=device,
             alpha=alpha,
+            master_key=derive_key(master_key, "wrong-key") if master_key else None,
         )
     )
     _STATE["device"] = device
     _STATE["alpha"] = alpha
+    _STATE["master_key"] = master_key
+    _STATE["smoke_test"] = smoke_test
     _STATE["catalogue"] = core_catalogue(device, heavy)
     if smoke_test:
         _STATE["catalogue"] = [
@@ -320,22 +351,13 @@ def _init(
         marked = [load_image(q) for q in paths]
         hosts = [load_image(q) for q in host_paths]
         entry: Dict = {}
-        try:
-            # The codebook must come from (host, marked) *pairs*: an adversary
-            # who has both is the strongest realistic one, and differencing a
-            # marked image against itself — the easy mistake — yields a codebook
-            # of exactly zero and an attack that does nothing.
-            entry["codebook"] = _atk.build_codebook_pairs(hosts, marked, canon=512)
-        except Exception:
-            pass
+        # The codebook must come from (host, marked) pairs.
+        entry["codebook"] = _atk.build_codebook_pairs(hosts, marked, canon=512)
         entry["pool"] = marked[:8]
         if rsid.available():
             r = rsid.ReverseSynthID()
-            try:
-                r.build_codebook(marked)
-                entry["rsid"] = r
-            except Exception:
-                entry["rsid"] = None
+            r.build_codebook(marked)
+            entry["rsid"] = r
         _STATE["per_system"][name] = entry
 
     if rsid.available():
@@ -374,10 +396,10 @@ def _detect(system: str, image, nonce=None):
     }
 
 
-def _embed(system: str, image, rng):
+def _embed(system: str, image, rng, nonce=None):
     s = _STATE[system]
     if system == "sigil":
-        e = s.embed(image, rng=rng)
+        e = s.embed(image, rng=rng, nonce=nonce)
         return e.image, e.nonce, e.psnr, e.ssim
     e = s.embed(image)
     return e.image, None, e.psnr, e.ssim
@@ -391,7 +413,9 @@ def _job(
     seed: int,
     max_size: int,
 ) -> List[dict]:
-    rng = np.random.default_rng(abs(hash(path)) % (2**31) + seed)
+    rng = np.random.default_rng(
+        int.from_bytes(hashlib.sha256(path.encode()).digest()[:8], "little") + seed
+    )
     img = load_image(path, max_size=max_size)
     rows: List[dict] = []
     name = Path(path).name
@@ -399,7 +423,15 @@ def _job(
     for system in systems:
         if _STATE.get(system) is None:
             continue
-        marked, nonce, ps, ss = _embed(system, img, rng)
+        root = _STATE["master_key"]
+        fixed_nonce = (
+            experiment_nonce(root, str(Path(path).resolve()), seed, 20)
+            if root is not None
+            else None
+        )
+        marked, nonce, ps, ss = _embed(system, img, rng, fixed_nonce)
+        if not _STATE["smoke_test"] and (ps < min_psnr or ss < min_ssim):
+            raise ValueError(f"{system} embedding fails fidelity on {path}")
         base = {"image": name, "system": system, "embed_psnr": ps, "embed_ssim": ss}
 
         def rec(cond, family, param, image, q_psnr, q_ssim, details=None):
@@ -428,7 +460,7 @@ def _job(
         rec("clean", "none", "", marked, float("inf"), 1.0)
         rec("unmarked", "none", "", img, float("inf"), 1.0)
         wrong_marked, _, _, _ = (
-            _embed("wrong", img, rng) if system == "sigil" else (None,) * 4
+            _embed("wrong", img, rng, fixed_nonce) if system == "sigil" else (None,) * 4
         )
         if wrong_marked is not None:
             rec("wrong_key", "none", "", wrong_marked, float("inf"), 1.0)
@@ -492,6 +524,8 @@ def _job(
             try:
                 a = fn(marked)
             except Exception as exc:
+                if not _STATE["smoke_test"]:
+                    raise RuntimeError(f"{system} {cond} failed on {path}") from exc
                 rows.append(dict(base, condition=cond, family=family, error=repr(exc)))
                 continue
             rec(
@@ -508,23 +542,21 @@ def _job(
 
 def _worker(args):
     path, systems, min_psnr, min_ssim, seed, max_size = args
-    try:
-        return _job(path, systems, min_psnr, min_ssim, seed, max_size)
-    except Exception as exc:
-        return [{"image": Path(path).name, "error": repr(exc)}]
+    return _job(path, systems, min_psnr, min_ssim, seed, max_size)
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--corpus", nargs="+", default=["data/corpus/photo"])
-    ap.add_argument("--limit", type=int, default=60)
+    ap.add_argument("--corpus", nargs="+", default=["data/corpus/natural"])
+    ap.add_argument("--corpus-manifest", default="data/corpus_manifest.json")
+    ap.add_argument("--limit", type=int, default=200)
     ap.add_argument("--systems", nargs="+", default=["sigil", "synthid", "stablesig"])
-    ap.add_argument("--workers", type=int, default=2)
-    ap.add_argument("--devices", nargs="+", default=["tpu:0", "tpu:1"])
+    ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--devices", nargs="+", default=[f"tpu:{i}" for i in range(4)])
     ap.add_argument("--checkpoint", default="checkpoints/latent.pt")
     ap.add_argument("--alpha", type=float, default=1e-6)
-    ap.add_argument("--min-psnr", type=float, default=24.0)
-    ap.add_argument("--min-ssim", type=float, default=0.70)
+    ap.add_argument("--min-psnr", type=float, default=42.0)
+    ap.add_argument("--min-ssim", type=float, default=0.985)
     ap.add_argument("--no-heavy", action="store_true")
     ap.add_argument("--codebook-refs", type=int, default=12)
     ap.add_argument("--out", default="results/arena.csv")
@@ -560,21 +592,54 @@ def main():
         args.systems = [s for s in ["sigil", "synthid"] if s in args.systems] or [
             "sigil"
         ]
+        if args.out == "results/arena.csv":
+            args.out = "results/smoke/arena.csv"
+        if args.summary == "results/arena_summary.json":
+            args.summary = "results/smoke/arena_summary.json"
+    else:
+        from sigil import reverse_synthid as rsid
+        from sigil.backend import tpu_available
 
-    paths: List[str] = []
+        if args.limit < 200:
+            ap.error("publication arena requires --limit >= 200")
+        if set(args.systems) != {"sigil", "synthid", "stablesig"}:
+            ap.error("publication arena requires all three systems")
+        if args.no_heavy or args.codebook_refs < 2:
+            ap.error("publication arena requires heavy and codebook attacks")
+        if not Path(args.checkpoint).is_file():
+            ap.error("publication arena requires a trained learned checkpoint")
+        if not rsid.available():
+            ap.error("publication arena requires the reverse-SynthID source")
+        if not tpu_available():
+            ap.error("publication arena requires an attached TPU")
+        master_key = deployment_key_from_env()
+    if args.smoke_test:
+        master_key = None
+
+    all_paths: List[str] = []
     for root in args.corpus:
-        paths.extend(str(p) for p in list_images(root)[: args.limit])
-    if not paths:
+        all_paths.extend(str(p) for p in list_images(root))
+    if not all_paths and args.smoke_test:
         for candidate in [
             "data/corpus/natural",
             "data/corpus",
             "results/cache/codebook/hosts",
         ]:
             if Path(candidate).exists() and list_images(candidate):
-                paths.extend(str(p) for p in list_images(candidate)[: args.limit])
+                all_paths.extend(str(p) for p in list_images(candidate))
                 break
+    paths = all_paths[: args.limit]
     if not paths:
         raise SystemExit("empty corpus")
+    if not args.smoke_test:
+        if len(paths) < 200 or len(set(paths)) != len(paths):
+            ap.error("publication arena requires 200 distinct images")
+        if len(all_paths) < args.limit + args.codebook_refs:
+            ap.error("publication arena requires disjoint codebook reference images")
+        checked_paths = paths + all_paths[args.limit : args.limit + args.codebook_refs]
+        if len({str(Path(p).resolve()) for p in checked_paths}) != len(checked_paths):
+            ap.error("evaluation and codebook reference paths must be disjoint")
+        verify_arena_corpus(checked_paths, Path(args.corpus_manifest))
     print(f"{len(paths)} images x {len(args.systems)} systems", flush=True)
 
     # The codebook attack needs marked references; build them once in the parent.
@@ -589,10 +654,26 @@ def main():
                 latent_checkpoint=args.checkpoint,
                 device=args.devices[0],
                 alpha=args.alpha,
+                master_key=master_key,
             )
         )
         makers = {
-            "sigil": lambda a, r: sig.embed(a, rng=r).image,
+            "sigil": lambda a, r: (
+                sig.embed(
+                    a,
+                    nonce=(
+                        experiment_nonce(
+                            master_key,
+                            hashlib.sha256(a.tobytes()).hexdigest(),
+                            args.seed,
+                            20,
+                        )
+                        if master_key
+                        else None
+                    ),
+                    rng=r,
+                ).image
+            ),
             "synthid": (lambda mk: lambda a, r: mk.embed(a).image)(SynthIDStyle()),
             "stablesig": (
                 (lambda mk: lambda a, r: mk.embed(a).image)(
@@ -606,16 +687,16 @@ def main():
         for name, mk in makers.items():
             if mk is None or name not in args.systems:
                 continue
-            d = Path("results/cache/codebook") / name
-            dh = Path("results/cache/codebook") / "hosts"
+            d = Path("data/arena_codebook_cache") / name
+            dh = Path("data/arena_codebook_cache") / "hosts"
             d.mkdir(parents=True, exist_ok=True)
             dh.mkdir(parents=True, exist_ok=True)
             out_paths, host_paths = [], []
-            for i, p in enumerate(paths[: args.codebook_refs]):
+            reference_paths = all_paths[args.limit : args.limit + args.codebook_refs]
+            for i, p in enumerate(reference_paths):
                 a = load_image(p, max_size=512)
                 a = np.stack([resize(a[..., c], (512, 512)) for c in range(3)], -1)
-                if not (dh / f"ref_{i:03d}.png").exists():
-                    save_image(dh / f"ref_{i:03d}.png", a)
+                save_image(dh / f"ref_{i:03d}.png", a)
                 save_image(d / f"ref_{i:03d}.png", mk(a, rng))
                 out_paths.append(str(d / f"ref_{i:03d}.png"))
                 host_paths.append(str(dh / f"ref_{i:03d}.png"))
@@ -645,6 +726,7 @@ def main():
             args.coarse_checkpoint,
             args.coarse_strength,
             smoke_test=args.smoke_test,
+            master_key=master_key,
         )
         for i, j in enumerate(jobs):
             rows.extend(_worker(j))
@@ -671,6 +753,7 @@ def main():
                         args.coarse_checkpoint,
                         args.coarse_strength,
                         args.smoke_test,
+                        master_key,
                     ),
                 )
             )
@@ -703,13 +786,72 @@ def main():
 
     import pandas as pd
 
+    from sigil.backend import tpu_available
+
     df = pd.DataFrame(rows)
     summary: Dict = {
         "n_images": len(paths),
         "alpha": args.alpha,
+        "seed": args.seed,
+        "corpus": args.corpus,
+        "corpus_manifest": None if args.smoke_test else args.corpus_manifest,
+        "checkpoint": args.checkpoint if Path(args.checkpoint).is_file() else None,
+        "key_mode": "public-smoke" if args.smoke_test else "private",
+        "requested_devices": args.devices,
+        "scanner_backend": (
+            "tpu" if args.devices[0].startswith("tpu") and tpu_available() else "cpu"
+        ),
+        "learned_backend": "torch-host-cpu"
+        if args.devices[0].startswith("tpu")
+        else args.devices[0],
         "quality_budget": {"min_psnr": args.min_psnr, "min_ssim": args.min_ssim},
         "systems": {},
     }
+    if (
+        not args.smoke_test
+        and df.get("error") is not None
+        and df["error"].notna().any()
+    ):
+        raise ValueError("arena contains failed conditions")
+    attack_conditions = {
+        name: len(
+            {
+                c
+                for c in df.loc[df.system == name, "condition"]
+                if c not in ("clean", "unmarked", "wrong_key")
+            }
+        )
+        for name in args.systems
+    }
+    summary["attack_conditions"] = attack_conditions
+    # A comparison is only meaningful on image/attack pairs admissible for
+    # every system. Keep raw rows in CSV, but aggregate the shared subset.
+    base_conditions = {"clean", "unmarked", "wrong_key"}
+    attack_df = df.loc[~df["condition"].isin(base_conditions)]
+    common_pairs = {
+        (image, condition)
+        for (image, condition), group in attack_df.groupby(["image", "condition"])
+        if set(group["system"]) == set(args.systems)
+        and (pd.to_numeric(group["admissible"], errors="coerce") == 1).all()
+    }
+    summary["common_admissible_pairs"] = len(common_pairs)
+    summary["common_admissible_conditions"] = len({c for _, c in common_pairs})
+    summary["eligible_for_paper"] = bool(
+        not args.smoke_test
+        and len(paths) >= 200
+        and all(n >= 30 for n in attack_conditions.values())
+        and summary["common_admissible_conditions"] >= 30
+        and set(args.systems) == {"sigil", "synthid", "stablesig"}
+    )
+    if not args.smoke_test and not summary["eligible_for_paper"]:
+        raise ValueError("arena requires 30 common admissible attacks")
+    df = df.loc[
+        df["condition"].isin(base_conditions)
+        | pd.Series(
+            [(i, c) in common_pairs for i, c in zip(df.image, df.condition)],
+            index=df.index,
+        )
+    ]
     for system, gs in df.groupby("system"):
         s: Dict = {
             "embed_psnr": float(
